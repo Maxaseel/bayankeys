@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Bayan Keys</string>
+    <string name="ime_service_name">Bayan AI Keyboard</string>
+    <string name="subtype_ar">Arabic (العربية)</string>
+    <string name="subtype_en">English</string>
+    <string name="subtype_fr">Français</string>
+    <string name="subtype_es">Español</string>
+    <string name="subtype_tr">Türkçe</string>
+</resources>

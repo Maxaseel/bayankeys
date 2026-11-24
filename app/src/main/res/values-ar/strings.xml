@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">لوحة بيان</string>
+    <string name="ime_service_name">لوحة بيان الذكية</string>
+    <string name="subtype_ar">العربية</string>
+    <string name="subtype_en">الإنجليزية</string>
+    <string name="subtype_fr">الفرنسية</string>
+    <string name="subtype_es">الإسبانية</string>
+    <string name="subtype_tr">التركية</string>
+</resources>

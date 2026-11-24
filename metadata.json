@@ -1,0 +1,6 @@
+{
+  "name": "Bayan Keys",
+  "description": "Smart bilingual Arabic and English AI keyboard with instant proofreading, multi-provider AI and translation APIs, custom themes, clipboard pinning, and adaptive word learning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
