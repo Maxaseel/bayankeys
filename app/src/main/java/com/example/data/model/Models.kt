@@ -488,7 +488,8 @@ data class ToolbarVisibilityConfig(
 data class ProofreadDiffReview(
     val originalText: String,
     val correctedText: String,
-    val replaceWholeField: Boolean
+    val replaceWholeField: Boolean,
+    val title: String = "نتيجة التصحيح"
 )
 
 enum class PasswordServiceBrand(

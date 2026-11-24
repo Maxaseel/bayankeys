@@ -632,9 +632,8 @@ class BayanInputMethodService :
             canUndoAi = true
         )
         showTransientStatus(
-            if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC)
-                "تم تطبيق النص المصحح"
-            else "Corrected text applied",
+            if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC) "تم تطبيق النتيجة"
+            else "Result applied",
             isError = false
         )
     }
@@ -660,7 +659,7 @@ class BayanInputMethodService :
     private fun handleCopyProofreadDiff() {
         val review = keyboardState.value.proofreadReview ?: return
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        clipboard?.setPrimaryClip(ClipData.newPlainText("Bayan Proofread", review.correctedText))
+        clipboard?.setPrimaryClip(ClipData.newPlainText(review.title, review.correctedText))
         if (!sizeConfig.incognitoMode) {
             serviceScope.launch {
                 repository.captureClipboardText(review.correctedText)
@@ -671,9 +670,8 @@ class BayanInputMethodService :
             panel = KeyboardPanel.KEYS
         )
         showTransientStatus(
-            if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC)
-                "تم نسخ النص المصحح إلى الحافظة"
-            else "Corrected text copied",
+            if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC) "تم نسخ النتيجة إلى الحافظة"
+            else "Result copied to clipboard",
             isError = false
         )
     }
@@ -956,12 +954,18 @@ class BayanInputMethodService :
             val result = aiService.translateText(targetText, targetLang, aiConfig)
             result.fold(
                 onSuccess = { translated ->
-                    replaceTextInEditor(translated, replaceWholeField)
                     keyboardState.value = keyboardState.value.copy(
                         isAiBusy = false,
-                        canUndoAi = true
+                        canUndoAi = false,
+                        statusMessage = null,
+                        proofreadReview = ProofreadDiffReview(
+                            originalText = targetText,
+                            correctedText = translated,
+                            replaceWholeField = replaceWholeField,
+                            title = "نتيجة الترجمة • ${targetLang.labelAr}"
+                        ),
+                        panel = KeyboardPanel.PROOFREAD_DIFF
                     )
-                    showTransientStatus("تمت الترجمة إلى ${targetLang.labelAr}", isError = false)
                 },
                 onFailure = { err ->
                     keyboardState.value = keyboardState.value.copy(isAiBusy = false)

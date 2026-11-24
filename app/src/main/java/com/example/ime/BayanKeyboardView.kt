@@ -253,7 +253,14 @@ fun BayanKeyboardView(
         // capped keyHeight independently of heightScale, so changing the slider often
         // had no visible effect. Keep a bounded range for comfortable key sizing.
         val keyHeight = baseKeyHeight.coerceIn(30.dp, 54.dp)
-        val panelHeight = (keyHeight * 4) + 24.dp
+        val keyboardRowCount = if (sizeConfig.showNumberRow && state.layer == KeyboardLayer.LETTERS) 5 else 4
+        val rowSpacing = if (isPreviewMode) 4.dp else 6.dp
+        val suggestionStripHeight = if (isPreviewMode) 26.dp else 34.dp
+        // Tool panels replace both the suggestion strip and key rows; match that full area
+        // rather than forcing every panel into a fixed four-row frame.
+        val panelHeight = suggestionStripHeight +
+            (keyHeight * keyboardRowCount) +
+            (rowSpacing * (keyboardRowCount - 1))
         val keyFontSp = (if (isPreviewMode) 14f else 18f) * sizeConfig.fontScale
 
         // Keep physical key layout LTR so Arabic & English rows never mirror unexpectedly
@@ -2391,20 +2398,20 @@ private fun KeyboardProofreadDiffPanel(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "نتيجة التصحيح",
+                text = review.title,
                 color = palette.text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = CairoFontFamily,
                 modifier = Modifier.weight(1f)
             )
-            // Legend: Red = Wrong, Green = Corrected
+            // The same review panel is used for translations and proofreading.
             Surface(
                 shape = RoundedCornerShape(6.dp),
                 color = Color(0xFFEF4444).copy(alpha = 0.18f)
             ) {
                 Text(
-                    text = "خطأ",
+                    text = "قبل",
                     color = Color(0xFFEF4444),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -2417,7 +2424,7 @@ private fun KeyboardProofreadDiffPanel(
                 color = Color(0xFF10B981).copy(alpha = 0.18f)
             ) {
                 Text(
-                    text = "مصحّح",
+                    text = "النتيجة",
                     color = Color(0xFF10B981),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -2463,7 +2470,7 @@ private fun KeyboardProofreadDiffPanel(
                 )
             } else if (review.originalText.trim() == review.correctedText.trim()) {
                 Text(
-                    text = "✓ النص سليم ولا توجد أخطاء:\n${review.correctedText}",
+                    text = "✓ لا توجد تغييرات:\n${review.correctedText}",
                     color = Color(0xFF10B981),
                     fontSize = 14.sp,
                     fontFamily = CairoFontFamily,
