@@ -705,6 +705,7 @@ private fun KeyboardToolbar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(palette.toolbarBackground)
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)

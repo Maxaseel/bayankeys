@@ -172,7 +172,8 @@ data class KeyboardThemePreset(
     val keyArgb: Long,
     val specialKeyArgb: Long,
     val accentArgb: Long,
-    val textArgb: Long
+    val textArgb: Long,
+    val toolbarArgb: Long? = null
 )
 
 object KeyboardThemePresets {
@@ -236,6 +237,19 @@ object KeyboardThemePresets {
         textArgb = 0xFFF0F9FF
     )
 
+    val bayanMidnightBlue = KeyboardThemePreset(
+        id = "bayan_midnight_blue",
+        nameEn = "Bayan Midnight Blue",
+        nameAr = "بيان الأزرق الليلي",
+        isDark = true,
+        backgroundArgb = 0xFF101010,
+        keyArgb = 0xFF252324,
+        specialKeyArgb = 0xFF45689F,
+        accentArgb = 0xFF6196EC,
+        textArgb = 0xFFF5F5F7,
+        toolbarArgb = 0xFF252324
+    )
+
     val roseQuartz = KeyboardThemePreset(
         id = "rose_quartz",
         nameEn = "Rose Mist",
@@ -254,6 +268,7 @@ object KeyboardThemePresets {
         obsidianViolet,
         desertAmber,
         royalOcean,
+        bayanMidnightBlue,
         roseQuartz
     )
 }
@@ -322,7 +337,8 @@ data class KeyboardThemeConfig(
                     isDark = preset.isDark,
                     cornerRadiusDp = keyCornerRadiusDp,
                     showBorders = showKeyBorders,
-                    keyShape = keyShape
+                    keyShape = keyShape,
+                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb)
                 )
             }
             ThemeMode.DARK, ThemeMode.LIGHT -> {
@@ -338,7 +354,8 @@ data class KeyboardThemeConfig(
                     isDark = preset.isDark,
                     cornerRadiusDp = keyCornerRadiusDp,
                     showBorders = showKeyBorders,
-                    keyShape = keyShape
+                    keyShape = keyShape,
+                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb)
                 )
             }
         }
@@ -362,7 +379,8 @@ data class ResolvedKeyboardPalette(
     val isDark: Boolean,
     val cornerRadiusDp: Float,
     val showBorders: Boolean,
-    val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED
+    val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED,
+    val toolbarBackground: Color = Color.Transparent
 )
 
 enum class NumberRowStyle(

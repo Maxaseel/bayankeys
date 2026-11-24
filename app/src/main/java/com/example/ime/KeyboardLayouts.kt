@@ -61,25 +61,24 @@ object KeyboardLayouts {
 
     private val arabicRowsNormal: List<List<KeySpec>> = listOf(
         listOf(
-            KeySpec("ض", "ض", "َ", "َ"),
-            KeySpec("ص", "ص", "ً", "ً"),
-            KeySpec("ث", "ث", "ُ", "ُ"),
-            KeySpec("ق", "ق", "ٌ", "ٌ"),
-            KeySpec("ف", "ف", "ِ", "ِ"),
-            KeySpec("غ", "غ", "ٍ", "ٍ"),
-            KeySpec("ع", "ع", "ْ", "ْ"),
-            KeySpec("ه", "ه", "ّ", "ّ", listOf("ة", "هـ")),
-            KeySpec("خ", "خ", "أ", "أ"),
-            KeySpec("ح", "ح", "إ", "إ"),
-            KeySpec("ج", "ج", "آ", "آ"),
-            KeySpec("د", "د", "ذ", "ذ", listOf("ذ"))
+            KeySpec("ض", "ض", "َ", "َ", listOf("َ")),
+            KeySpec("ص", "ص", "ً", "ً", listOf("ً")),
+            KeySpec("ث", "ث", "ُ", "ُ", listOf("ُ")),
+            KeySpec("ق", "ق", "ٌ", "ٌ", listOf("ٌ")),
+            KeySpec("ف", "ف", "ِ", "ِ", listOf("ِ")),
+            KeySpec("غ", "غ", "ٍ", "ٍ", listOf("ٍ")),
+            KeySpec("ع", "ع", "ْ", "ْ", listOf("ْ")),
+            KeySpec("ه", "ه", "ّ", "ّ", listOf("ّ", "ة", "هـ")),
+            KeySpec("خ", "خ", "أ", "أ", listOf("أ")),
+            KeySpec("ح", "ح", "إ", "إ", listOf("إ")),
+            KeySpec("ج", "ج", "آ", "آ", listOf("آ"))
         ),
         listOf(
             KeySpec("ش", "ش", "ـ", "ـ"),
             KeySpec("س", "س", "«", "«"),
             KeySpec("ي", "ي", "»", "»", listOf("ى", "ئ")),
             KeySpec("ب", "ب", "(", "("),
-            KeySpec("ل", "ل", ")", ")"),
+            KeySpec("ل", "ل", ")", ")", listOf("لا", "لأ", "لإ", "لآ")),
             KeySpec("ا", "ا", "أ", "أ", listOf("أ", "إ", "آ", "ى")),
             KeySpec("ت", "ت", "إ", "إ", listOf("ة")),
             KeySpec("ن", "ن", "آ", "آ"),
@@ -88,17 +87,16 @@ object KeyboardLayouts {
             KeySpec("ط", "ط", "ظ", "ظ", listOf("ظ"))
         ),
         listOf(
-            KeySpec("تشكيل", "", "عادي", "", weight = 1.35f, kind = KeyKind.SHIFT),
-            KeySpec("ئ", "ئ", "!", "!"),
-            KeySpec("ء", "ء", "؟", "؟"),
-            KeySpec("ؤ", "ؤ", "/", "/"),
-            KeySpec("ر", "ر", "-", "-"),
-            KeySpec("لا", "لا", "لأ", "لأ", listOf("لأ", "لإ", "لآ")),
-            KeySpec("ى", "ى", "،", "،"),
-            KeySpec("ة", "ة", ".", "."),
-            KeySpec("و", "و", "ؤ", "ؤ", listOf("ؤ")),
-            KeySpec("ز", "ز", "ذ", "ذ"),
-            KeySpec("ظ", "ظ", "ض", "ض"),
+            KeySpec("ذ", "ذ", "ذ", "ذ", listOf("ذ")),
+            KeySpec("ء", "ء", "ء", "ء", listOf("ئ", "أ")),
+            KeySpec("ؤ", "ؤ", "ؤ", "ؤ", listOf("ئ", "ء")),
+            KeySpec("ر", "ر", "ر", "ر"),
+            KeySpec("ى", "ى", "ى", "ى", listOf("ي")),
+            KeySpec("ة", "ة", "ة", "ة", listOf("ه")),
+            KeySpec("و", "و", "و", "و", listOf("ؤ")),
+            KeySpec("ز", "ز", "ز", "ز", listOf("ژ")),
+            KeySpec("ظ", "ظ", "ظ", "ظ", listOf("ض")),
+            KeySpec("د", "د", "د", "د", listOf("ذ")),
             KeySpec("⌫", "", "⌫", "", weight = 1.35f, kind = KeyKind.BACKSPACE)
         )
     )
@@ -225,14 +223,16 @@ object KeyboardLayouts {
     fun bottomRow(language: KeyboardLanguage, layer: KeyboardLayer): List<KeySpec> {
         val comma = if (language == KeyboardLanguage.ARABIC) "،" else ","
         val question = if (language == KeyboardLanguage.ARABIC) "؟" else "?"
-        val toggleLabel = if (layer == KeyboardLayer.LETTERS) "?123" else if (language == KeyboardLanguage.ARABIC) "أ ب ج" else "ABC"
+        val toggleLabel = if (layer == KeyboardLayer.LETTERS) {
+            if (language == KeyboardLanguage.ARABIC) "؟٣٢١" else "?123"
+        } else if (language == KeyboardLanguage.ARABIC) "أ ب ج" else "ABC"
         return listOf(
             KeySpec(toggleLabel, "", toggleLabel, "", weight = 1.35f, kind = KeyKind.SYMBOLS_TOGGLE),
             KeySpec(comma, comma, comma, comma, listOf("؛", ":"), weight = 0.9f),
             KeySpec("🌐", "", "🌐", "", weight = 1.0f, kind = KeyKind.LANGUAGE_SWITCH),
             KeySpec(language.spaceLabel, " ", language.spaceLabel, " ", weight = 4.2f, kind = KeyKind.SPACE),
             KeySpec(".", ".", ".", ".", listOf(question, "!", "…"), weight = 0.9f),
-            KeySpec("↵", "\n", "↵", "\n", weight = 1.55f, kind = KeyKind.ENTER)
+            KeySpec("→", "\n", "→", "\n", weight = 1.55f, kind = KeyKind.ENTER)
         )
     }
 
