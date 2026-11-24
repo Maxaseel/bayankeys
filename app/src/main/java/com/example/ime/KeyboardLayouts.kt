@@ -61,42 +61,42 @@ object KeyboardLayouts {
 
     private val arabicRowsNormal: List<List<KeySpec>> = listOf(
         listOf(
-            KeySpec("ض", "ض", "َ", "َ", listOf("َ")),
-            KeySpec("ص", "ص", "ً", "ً", listOf("ً")),
-            KeySpec("ث", "ث", "ُ", "ُ", listOf("ُ")),
-            KeySpec("ق", "ق", "ٌ", "ٌ", listOf("ٌ")),
-            KeySpec("ف", "ف", "ِ", "ِ", listOf("ِ")),
-            KeySpec("غ", "غ", "ٍ", "ٍ", listOf("ٍ")),
-            KeySpec("ع", "ع", "ْ", "ْ", listOf("ْ")),
-            KeySpec("ه", "ه", "ّ", "ّ", listOf("ّ", "ة", "هـ")),
-            KeySpec("خ", "خ", "أ", "أ", listOf("أ")),
-            KeySpec("ح", "ح", "إ", "إ", listOf("إ")),
-            KeySpec("ج", "ج", "آ", "آ", listOf("آ"))
+            KeySpec("ض", "ض", "َ", "َ"),
+            KeySpec("ص", "ص", "ً", "ً"),
+            KeySpec("ث", "ث", "ُ", "ُ"),
+            KeySpec("ق", "ق", "ٌ", "ٌ", listOf("ڨ")),
+            KeySpec("ف", "ف", "ِ", "ِ", listOf("ڤ", "ڢ", "ڥ")),
+            KeySpec("غ", "غ", "ٍ", "ٍ"),
+            KeySpec("ع", "ع", "ْ", "ْ"),
+            KeySpec("ه", "ه", "ّ", "ّ", listOf("ﻫ", "ه‍")),
+            KeySpec("خ", "خ", "أ", "أ"),
+            KeySpec("ح", "ح", "إ", "إ"),
+            KeySpec("ج", "ج", "آ", "آ", listOf("چ"))
         ),
         listOf(
-            KeySpec("ش", "ش", "ـ", "ـ"),
+            KeySpec("ش", "ش", "ـ", "ـ", listOf("ڜ")),
             KeySpec("س", "س", "«", "«"),
-            KeySpec("ي", "ي", "»", "»", listOf("ى", "ئ")),
-            KeySpec("ب", "ب", "(", "("),
-            KeySpec("ل", "ل", ")", ")", listOf("لا", "لأ", "لإ", "لآ")),
-            KeySpec("ا", "ا", "أ", "أ", listOf("أ", "إ", "آ", "ى")),
+            KeySpec("ي", "ي", "»", "»", listOf("ئ", "ى")),
+            KeySpec("ب", "ب", "(", "(", listOf("پ")),
+            KeySpec("ل", "ل", ")", ")", listOf("ﻻ", "لا", "ﻷ", "لأ", "ﻹ", "لإ", "ﻵ", "لآ")),
+            KeySpec("ا", "ا", "أ", "أ", listOf("آ", "ء", "أ", "إ", "ٱ")),
             KeySpec("ت", "ت", "إ", "إ", listOf("ة")),
             KeySpec("ن", "ن", "آ", "آ"),
             KeySpec("م", "م", "؛", "؛"),
-            KeySpec("ك", "ك", ":", ":"),
-            KeySpec("ط", "ط", "ظ", "ظ", listOf("ظ"))
+            KeySpec("ك", "ك", ":", ":", listOf("گ", "ک")),
+            KeySpec("ط", "ط", "ظ", "ظ")
         ),
         listOf(
-            KeySpec("ذ", "ذ", "ذ", "ذ", listOf("ذ")),
-            KeySpec("ء", "ء", "ء", "ء", listOf("ئ", "أ")),
-            KeySpec("ؤ", "ؤ", "ؤ", "ؤ", listOf("ئ", "ء")),
+            KeySpec("ذ", "ذ", "ذ", "ذ"),
+            KeySpec("ء", "ء", "ء", "ء"),
+            KeySpec("ؤ", "ؤ", "ؤ", "ؤ"),
             KeySpec("ر", "ر", "ر", "ر"),
-            KeySpec("ى", "ى", "ى", "ى", listOf("ي")),
-            KeySpec("ة", "ة", "ة", "ة", listOf("ه")),
+            KeySpec("ى", "ى", "ى", "ى", listOf("ئ")),
+            KeySpec("ة", "ة", "ة", "ة"),
             KeySpec("و", "و", "و", "و", listOf("ؤ")),
             KeySpec("ز", "ز", "ز", "ز", listOf("ژ")),
-            KeySpec("ظ", "ظ", "ظ", "ظ", listOf("ض")),
-            KeySpec("د", "د", "د", "د", listOf("ذ")),
+            KeySpec("ظ", "ظ", "ظ", "ظ"),
+            KeySpec("د", "د", "د", "د"),
             KeySpec("⌫", "", "⌫", "", weight = 1.35f, kind = KeyKind.BACKSPACE)
         )
     )
@@ -224,14 +224,17 @@ object KeyboardLayouts {
         val comma = if (language == KeyboardLanguage.ARABIC) "،" else ","
         val question = if (language == KeyboardLanguage.ARABIC) "؟" else "?"
         val toggleLabel = if (layer == KeyboardLayer.LETTERS) {
-            if (language == KeyboardLanguage.ARABIC) "؟٣٢١" else "?123"
-        } else if (language == KeyboardLanguage.ARABIC) "أ ب ج" else "ABC"
+            if (language == KeyboardLanguage.ARABIC) "٣٢١؟" else "?123"
+        } else if (language == KeyboardLanguage.ARABIC) "أ‌ب‌ج" else "ABC"
+        val dotLongPress = if (language == KeyboardLanguage.ARABIC) {
+            listOf("ٕ", "ٔ", "ْ", "ٍ", "ٌ", "ً", "ّ", "ٖ", "ٰ", "ٓ", "ِ", "ُ", "َ", "ـ", question)
+        } else listOf(question, "!", "…")
         return listOf(
             KeySpec(toggleLabel, "", toggleLabel, "", weight = 1.35f, kind = KeyKind.SYMBOLS_TOGGLE),
             KeySpec(comma, comma, comma, comma, listOf("؛", ":"), weight = 0.9f),
             KeySpec("🌐", "", "🌐", "", weight = 1.0f, kind = KeyKind.LANGUAGE_SWITCH),
             KeySpec(language.spaceLabel, " ", language.spaceLabel, " ", weight = 4.2f, kind = KeyKind.SPACE),
-            KeySpec(".", ".", ".", ".", listOf(question, "!", "…"), weight = 0.9f),
+            KeySpec(".", ".", ".", ".", dotLongPress, weight = 0.9f),
             KeySpec("→", "\n", "→", "\n", weight = 1.55f, kind = KeyKind.ENTER)
         )
     }

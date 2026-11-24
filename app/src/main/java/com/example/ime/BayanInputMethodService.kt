@@ -248,6 +248,7 @@ class BayanInputMethodService :
         super.onStartInputView(info, restarting)
         stopGradualPaste()
         composingWord.clear()
+        previousWord = null
         captureSystemClipboard()
         val keepPasswordsPanel = restarting && keyboardState.value.panel == KeyboardPanel.PASSWORDS
         keyboardState.value = keyboardState.value.copy(
@@ -257,6 +258,7 @@ class BayanInputMethodService :
             canUndoAi = false,
             isGradualPasting = false,
             gradualPasteDisabledPrompt = false,
+            suggestions = emptyList(),
             statusMessage = null
         )
 
@@ -492,33 +494,33 @@ class BayanInputMethodService :
         if (candidate.targetLanguageSwitch != null && sizeConfig.autoSwitchLanguage) {
             setActiveLanguage(candidate.targetLanguageSwitch)
         }
-        if (sizeConfig.learningEnabled && !sizeConfig.incognitoMode) {
-            serviceScope.launch {
-                repository.learnCommittedWord(
-                    rawWord = candidate.text,
-                    previousWord = previousWord,
-                    activeLanguage = targetLang,
-                    enabledLanguages = enabledLanguages
-                )
-                previousWord = candidate.text
-            }
-        }
+        learnAndRememberWord(candidate.text, targetLang)
         composingWord.clear()
         refreshSuggestions()
     }
 
     private fun commitCurrentWordToDictionary() {
         val word = composingWord.toString().trim()
-        if (word.isBlank() || !sizeConfig.learningEnabled || sizeConfig.incognitoMode) return
-        val lang = keyboardState.value.activeLanguage
+        learnAndRememberWord(word, keyboardState.value.activeLanguage)
+    }
+
+    private fun learnAndRememberWord(rawWord: String, activeLanguage: KeyboardLanguage) {
+        val word = rawWord.trim().trim { it in ".,!?;:\"'()[]{}،؛؟" }
+        if (word.length < 2 || word.all { it.isDigit() } ||
+            !sizeConfig.learningEnabled || sizeConfig.incognitoMode
+        ) return
+
+        // Keep prediction context available immediately, then refresh once persistence completes.
+        val precedingWord = previousWord
+        previousWord = word
         serviceScope.launch {
             repository.learnCommittedWord(
                 rawWord = word,
-                previousWord = previousWord,
-                activeLanguage = lang,
+                previousWord = precedingWord,
+                activeLanguage = activeLanguage,
                 enabledLanguages = enabledLanguages
             )
-            previousWord = word
+            refreshSuggestions()
         }
     }
 

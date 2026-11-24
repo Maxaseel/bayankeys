@@ -82,15 +82,18 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -1151,6 +1154,7 @@ private fun KeyboardKeyButton(
     onSpaceSwipe: (Int) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val keyHeightPx = with(LocalDensity.current) { keyHeight.roundToPx() }
     var showLongPressOptions by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
 
@@ -1312,32 +1316,41 @@ private fun KeyboardKeyButton(
             }
         }
 
-        // Long-press secondary variants popup bar inside key overlay
+        // Show all long-press variants in a scrollable popup, outside the clipped key bounds.
         if (showLongPressOptions && spec.longPressChars.isNotEmpty()) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = palette.accent,
-                shadowElevation = 6.dp,
-                modifier = Modifier.padding(2.dp)
+            Popup(
+                alignment = Alignment.TopCenter,
+                offset = IntOffset(0, -keyHeightPx),
+                onDismissRequest = { showLongPressOptions = false }
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = palette.accent,
+                    shadowElevation = 6.dp
                 ) {
-                    spec.longPressChars.take(4).forEach { variant ->
-                        Text(
-                            text = variant,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .clickable {
-                                    onLongPressChar(variant)
-                                    showLongPressOptions = false
-                                }
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
+                    Row(
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        spec.longPressChars.forEach { variant ->
+                            Text(
+                                text = variant,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        onLongPressChar(variant)
+                                        showLongPressOptions = false
+                                    }
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }

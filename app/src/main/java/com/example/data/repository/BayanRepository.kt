@@ -318,23 +318,29 @@ class BayanRepository(
     ): List<SuggestionCandidate> = withContext(Dispatchers.IO) {
         val query = composingWord.trim()
         if (query.isEmpty()) {
-            // Next-word predictions from bigrams
-            if (!previousWord.isNullOrBlank()) {
-                val prevNorm = if (activeLanguage == KeyboardLanguage.ARABIC) previousWord.trim()
-                else previousWord.trim().lowercase()
-                val bigrams = dao.getNextWordPredictions(prevNorm, activeLanguage.code, 4)
-                if (bigrams.isNotEmpty()) {
-                    return@withContext bigrams.map {
-                        SuggestionCandidate(text = it.nextWord, replacesComposing = false)
-                    }
-                }
-            }
-            val top = dao.getTopWordsForLanguage(activeLanguage.code, 4)
-            return@withContext top.map { SuggestionCandidate(text = it.word, replacesComposing = false) }
+            // Do not show generic dictionary words before there is typing context.
+            // Once a word has been committed, use only that user's learned next-word sequence.
+            if (previousWord.isNullOrBlank()) return@withContext emptyList()
+            val prevNorm = if (activeLanguage == KeyboardLanguage.ARABIC) previousWord.trim()
+            else previousWord.trim().lowercase()
+            return@withContext dao.getNextWordPredictions(prevNorm, activeLanguage.code, 4)
+                .map { SuggestionCandidate(text = it.nextWord, replacesComposing = false) }
         }
 
         val results = mutableListOf<SuggestionCandidate>()
         val searchQuery = if (activeLanguage == KeyboardLanguage.ARABIC) query else query.lowercase()
+
+        // Rank words learned after the preceding word ahead of generic prefix matches.
+        if (!previousWord.isNullOrBlank()) {
+            val prevNorm = if (activeLanguage == KeyboardLanguage.ARABIC) previousWord.trim()
+            else previousWord.trim().lowercase()
+            dao.getNextWordPredictions(prevNorm, activeLanguage.code, 8)
+                .asSequence()
+                .map { it.nextWord }
+                .filter { it.startsWith(searchQuery, ignoreCase = activeLanguage != KeyboardLanguage.ARABIC) }
+                .distinct()
+                .forEach { results.add(SuggestionCandidate(text = it, replacesComposing = true)) }
+        }
 
         // 1. Exact prefix matches in active language
         val prefixMatches = dao.searchWordsByPrefix(searchQuery, activeLanguage.code, 6)
