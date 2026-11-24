@@ -249,14 +249,10 @@ fun BayanKeyboardView(
             )
     ) {
         val baseKeyHeight = (if (isPreviewMode) 36.dp else 44.dp) * sizeConfig.heightScale
-        val rowCount = if (sizeConfig.showNumberRow && state.layer == KeyboardLayer.LETTERS) 5 else 4
-        val keyHeight = if (!isPreviewMode && constraints.hasBoundedHeight && maxHeight < 650.dp) {
-            val budgetForKeys = (maxHeight * 0.44f - 82.dp).coerceAtLeast(130.dp)
-            val maxRowKey = (budgetForKeys - 24.dp) / rowCount
-            baseKeyHeight.coerceAtMost(maxRowKey).coerceIn(30.dp, 48.dp)
-        } else {
-            baseKeyHeight.coerceIn(30.dp, 54.dp)
-        }
+        // Respect the height slider in the live IME. The former screen-height budget
+        // capped keyHeight independently of heightScale, so changing the slider often
+        // had no visible effect. Keep a bounded range for comfortable key sizing.
+        val keyHeight = baseKeyHeight.coerceIn(30.dp, 54.dp)
         val panelHeight = (keyHeight * 4) + 24.dp
         val keyFontSp = (if (isPreviewMode) 14f else 18f) * sizeConfig.fontScale
 
@@ -3098,4 +3094,3 @@ private fun KeyboardBotsPanel(
         }
     }
 }
-
