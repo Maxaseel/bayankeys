@@ -227,7 +227,7 @@ object KeyboardLayouts {
             if (language == KeyboardLanguage.ARABIC) "٣٢١؟" else "?123"
         } else if (language == KeyboardLanguage.ARABIC) "أ‌ب‌ج" else "ABC"
         val dotLongPress = if (language == KeyboardLanguage.ARABIC) {
-            listOf("ٕ", "ٔ", "ْ", "ٍ", "ٌ", "ً", "ّ", "ٖ", "ٰ", "ٓ", "ِ", "ُ", "َ", "ـ", question)
+            listOf("ٕ", "ٔ", "ْ", "ٍ", "ٌ", "ً", "ّ", "ٖ", "ٰ", "ٓ", "ِ", "ُ", "َ", "ـ")
         } else listOf(question, "!", "…")
         return listOf(
             KeySpec(toggleLabel, "", toggleLabel, "", weight = 1.35f, kind = KeyKind.SYMBOLS_TOGGLE),

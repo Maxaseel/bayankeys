@@ -19,6 +19,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.collectAsState
@@ -99,6 +100,11 @@ class BayanInputMethodService :
     private var lastShiftTapTime = 0L
 
     private var undoBackupFullText: String? = null
+    private var redoBackupFullText: String? = null
+    private var retryCurrentAiOperation: (suspend () -> Result<String>)? = null
+    private var aiSourceWasWholeField = true
+    private var aiSourceSelectionStart = 0
+    private var aiSourceSelectionEnd = 0
     private var lastSeenClipSignature: String? = null
     private var statusJob: Job? = null
     private var suggestionJob: Job? = null
@@ -195,6 +201,9 @@ class BayanInputMethodService :
                     onApplyProofreadDiff = ::handleApplyProofreadDiff,
                     onApplyProofreadDiffGradually = ::handleApplyProofreadDiffGradually,
                     onCopyProofreadDiff = ::handleCopyProofreadDiff,
+                    onUndoAppliedReview = ::handleReviewUndo,
+                    onRedoAppliedReview = ::handleReviewRedo,
+                    onRegenerateReview = ::handleRegenerateReview,
                     onDismissProofreadDiff = ::handleDismissProofreadDiff,
                     onUpdateToolbarConfig = { transform ->
                         serviceScope.launch { settings.updateToolbarVisibility(transform) }
@@ -565,7 +574,8 @@ class BayanInputMethodService :
         composingWord.clear()
 
         val selected = ic.getSelectedText(0)?.toString()
-        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
+        val extracted = extractedSnapshot?.text?.toString()
         val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
         val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
@@ -590,10 +600,12 @@ class BayanInputMethodService :
         }
 
         val replaceWholeField = selected.isNullOrBlank()
-        undoBackupFullText = allFieldText
+        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        retryCurrentAiOperation = { aiService.proofreadAndCorrect(targetText, aiConfig) }
 
         keyboardState.value = keyboardState.value.copy(
             isAiBusy = true,
+            canUndoAi = false,
             statusMessage = if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC)
                 "تم تحديد النص • جاري التصحيح بالذكاء الاصطناعي..."
             else "Text selected • Proofreading with ${aiConfig.aiProvider.displayNameEn}...",
@@ -626,11 +638,13 @@ class BayanInputMethodService :
 
     private fun handleApplyProofreadDiff() {
         val review = keyboardState.value.proofreadReview ?: return
+        if (review.isApplied || review.canRedo) return
         stopGradualPaste()
         replaceTextInEditor(review.correctedText, review.replaceWholeField)
+        redoBackupFullText = buildAiResultSnapshot(review.correctedText) ?: getCurrentEditorText()
         keyboardState.value = keyboardState.value.copy(
-            proofreadReview = null,
-            panel = KeyboardPanel.KEYS,
+            proofreadReview = review.copy(isApplied = true, canRedo = false),
+            panel = KeyboardPanel.PROOFREAD_DIFF,
             canUndoAi = true
         )
         showTransientStatus(
@@ -685,6 +699,67 @@ class BayanInputMethodService :
         )
     }
 
+    private fun handleReviewUndo() {
+        val review = keyboardState.value.proofreadReview ?: return
+        val original = undoBackupFullText ?: return
+        if (!review.isApplied) return
+        replaceTextInEditor(original, replaceWholeField = true)
+        keyboardState.value = keyboardState.value.copy(
+            proofreadReview = review.copy(isApplied = false, canRedo = true),
+            canUndoAi = false
+        )
+        showTransientStatus("تم التراجع عن تطبيق النتيجة", isError = false)
+    }
+
+    private fun handleReviewRedo() {
+        val review = keyboardState.value.proofreadReview ?: return
+        val applied = redoBackupFullText ?: return
+        if (!review.canRedo) return
+        replaceTextInEditor(applied, replaceWholeField = true)
+        keyboardState.value = keyboardState.value.copy(
+            proofreadReview = review.copy(isApplied = true, canRedo = false),
+            canUndoAi = true
+        )
+        showTransientStatus("تمت إعادة تطبيق النتيجة", isError = false)
+    }
+
+    private fun handleRegenerateReview() {
+        if (keyboardState.value.isAiBusy) return
+        val review = keyboardState.value.proofreadReview ?: return
+        val retry = retryCurrentAiOperation ?: return
+        keyboardState.value = keyboardState.value.copy(
+            isAiBusy = true,
+            statusMessage = "جارٍ إعادة إنشاء النتيجة للنص الأصلي...",
+            isErrorStatus = false
+        )
+        serviceScope.launch {
+            retry().fold(
+                onSuccess = { regenerated ->
+                    val wasApplied = review.isApplied
+                    if (wasApplied) {
+                        undoBackupFullText?.let { replaceTextInEditor(it, replaceWholeField = true) }
+                    }
+                    redoBackupFullText = if (wasApplied) buildAiResultSnapshot(regenerated) else null
+                    keyboardState.value = keyboardState.value.copy(
+                        isAiBusy = false,
+                        statusMessage = null,
+                        proofreadReview = review.copy(
+                            correctedText = regenerated,
+                            isApplied = false,
+                            canRedo = wasApplied
+                        ),
+                        canUndoAi = false,
+                        panel = KeyboardPanel.PROOFREAD_DIFF
+                    )
+                },
+                onFailure = { error ->
+                    keyboardState.value = keyboardState.value.copy(isAiBusy = false)
+                    showTransientStatus(error.message ?: "تعذرت إعادة إنشاء النتيجة", isError = true)
+                }
+            )
+        }
+    }
+
     private fun handleRunCustomBot(bot: CustomBotItem) {
         if (keyboardState.value.isAiBusy) return
         val ic = currentInputConnection
@@ -693,17 +768,20 @@ class BayanInputMethodService :
         ic?.finishComposingText()
 
         val selected = ic?.getSelectedText(0)?.toString()
-        val extracted = ic?.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        val extractedSnapshot = ic?.getExtractedText(ExtractedTextRequest(), 0)
+        val extracted = extractedSnapshot?.text?.toString()
         val fullBefore = ic?.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
         val fullAfter = ic?.getTextAfterCursor(5000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
 
         val targetText = if (!selected.isNullOrBlank()) selected else allFieldText
         val replaceWholeField = selected.isNullOrBlank()
-        undoBackupFullText = allFieldText
+        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        retryCurrentAiOperation = { aiService.runCustomBot(targetText, bot, aiConfig) }
 
         keyboardState.value = keyboardState.value.copy(
             isAiBusy = true,
+            canUndoAi = false,
             statusMessage = "جاري التشغيل بواسطة «${bot.name}»...",
             isErrorStatus = false
         )
@@ -748,7 +826,8 @@ class BayanInputMethodService :
         ic.finishComposingText()
 
         val selected = ic.getSelectedText(0)?.toString()
-        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
+        val extracted = extractedSnapshot?.text?.toString()
         val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
         val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
@@ -760,10 +839,20 @@ class BayanInputMethodService :
         }
 
         val replaceWholeField = selected.isNullOrBlank()
-        undoBackupFullText = allFieldText
+        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        val targetLang = keyboardState.value.targetTranslateLang
+        retryCurrentAiOperation = {
+            aiService.runQuickBotAction(
+                text = targetText,
+                action = action,
+                targetLanguage = targetLang,
+                config = aiConfig
+            )
+        }
 
         keyboardState.value = keyboardState.value.copy(
             isAiBusy = true,
+            canUndoAi = false,
             statusMessage = "جاري تنفيذ «${action.labelAr}»...",
             isErrorStatus = false
         )
@@ -772,7 +861,7 @@ class BayanInputMethodService :
             val result = aiService.runQuickBotAction(
                 text = targetText,
                 action = action,
-                targetLanguage = keyboardState.value.targetTranslateLang,
+                targetLanguage = targetLang,
                 config = aiConfig
             )
             result.fold(
@@ -919,7 +1008,8 @@ class BayanInputMethodService :
         composingWord.clear()
 
         val selected = ic.getSelectedText(0)?.toString()
-        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
+        val extracted = extractedSnapshot?.text?.toString()
         val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
         val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
@@ -943,11 +1033,13 @@ class BayanInputMethodService :
         }
 
         val replaceWholeField = selected.isNullOrBlank()
-        undoBackupFullText = allFieldText
+        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
         val targetLang = keyboardState.value.targetTranslateLang
+        retryCurrentAiOperation = { aiService.translateText(targetText, targetLang, aiConfig) }
 
         keyboardState.value = keyboardState.value.copy(
             isAiBusy = true,
+            canUndoAi = false,
             statusMessage = "جاري الترجمة إلى ${targetLang.labelAr}...",
             isErrorStatus = false
         )
@@ -987,15 +1079,55 @@ class BayanInputMethodService :
     }
 
     private fun handleUndoAi() {
+        if (keyboardState.value.proofreadReview?.isApplied == true) {
+            handleReviewUndo()
+            return
+        }
         val backup = undoBackupFullText ?: return
         replaceTextInEditor(backup, replaceWholeField = true)
         undoBackupFullText = null
+        redoBackupFullText = null
         keyboardState.value = keyboardState.value.copy(canUndoAi = false)
         showTransientStatus(
             if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC) "تم التراجع عن التعديل"
             else "Reverted to original text",
             isError = false
         )
+    }
+
+    private fun getCurrentEditorText(): String? {
+        val ic = currentInputConnection ?: return null
+        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        return extracted ?: (ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty() +
+            ic.getTextAfterCursor(5000, 0)?.toString().orEmpty())
+    }
+
+    private fun rememberAiUndoState(
+        fullText: String,
+        selectedText: String?,
+        extracted: ExtractedText?
+    ) {
+        undoBackupFullText = fullText
+        redoBackupFullText = null
+        aiSourceWasWholeField = selectedText.isNullOrBlank()
+        if (aiSourceWasWholeField) {
+            aiSourceSelectionStart = 0
+            aiSourceSelectionEnd = fullText.length
+            return
+        }
+        val fallbackStart = fullText.indexOf(selectedText.orEmpty()).takeIf { it >= 0 } ?: 0
+        val start = extracted?.selectionStart?.takeIf { it >= 0 } ?: fallbackStart
+        val end = extracted?.selectionEnd?.takeIf { it >= 0 } ?: (start + selectedText.orEmpty().length)
+        aiSourceSelectionStart = minOf(start, end).coerceIn(0, fullText.length)
+        aiSourceSelectionEnd = maxOf(start, end).coerceIn(aiSourceSelectionStart, fullText.length)
+    }
+
+    private fun buildAiResultSnapshot(resultText: String): String? {
+        val original = undoBackupFullText ?: return null
+        if (aiSourceWasWholeField) return resultText
+        val start = aiSourceSelectionStart.coerceIn(0, original.length)
+        val end = aiSourceSelectionEnd.coerceIn(start, original.length)
+        return original.replaceRange(start, end, resultText)
     }
 
     private fun replaceTextInEditor(newText: String, replaceWholeField: Boolean) {

@@ -213,6 +213,9 @@ fun BayanKeyboardView(
     onApplyProofreadDiff: () -> Unit = {},
     onApplyProofreadDiffGradually: () -> Unit = {},
     onCopyProofreadDiff: () -> Unit = {},
+    onUndoAppliedReview: () -> Unit = {},
+    onRedoAppliedReview: () -> Unit = {},
+    onRegenerateReview: () -> Unit = {},
     onDismissProofreadDiff: () -> Unit = {},
     onUpdateToolbarConfig: ((ToolbarVisibilityConfig) -> ToolbarVisibilityConfig) -> Unit = {},
     onUpdateSizeConfig: ((KeyboardSizeConfig) -> KeyboardSizeConfig) -> Unit = {},
@@ -313,65 +316,6 @@ fun BayanKeyboardView(
                     },
                     onOpenSettings = onOpenSettings
                 )
-
-            // Status / Feedback banner when AI, Gradual Paste, or prompt runs
-            AnimatedVisibility(visible = state.statusMessage != null) {
-                val msg = state.statusMessage.orEmpty()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (state.isErrorStatus) Color(0xFFEF4444).copy(alpha = 0.16f)
-                            else palette.accent.copy(alpha = 0.16f)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = msg,
-                        color = if (state.isErrorStatus) Color(0xFFFCA5A5) else palette.text,
-                        fontSize = 11.sp,
-                        fontFamily = CairoFontFamily,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (state.isGradualPasting) {
-                        Surface(
-                            onClick = onStopGradualPaste,
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFEF4444)
-                        ) {
-                            Text(
-                                text = "إيقاف",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = CairoFontFamily,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    } else if (state.gradualPasteDisabledPrompt) {
-                        Surface(
-                            onClick = onOpenGradualPasteSettings,
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF2563EB)
-                        ) {
-                            Text(
-                                text = "تفعيل ⚡",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = CairoFontFamily,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
-                }
-            }
 
             // 2. Suggestion Strip (RTL for Arabic, plus Auto-Dismissing Recent Copied Text chip)
             if (state.panel == KeyboardPanel.KEYS) {
@@ -668,6 +612,19 @@ fun BayanKeyboardView(
                                 performHaptic()
                                 onCopyProofreadDiff()
                             },
+                            onUndoApplied = {
+                                performHaptic()
+                                onUndoAppliedReview()
+                            },
+                            onRedoApplied = {
+                                performHaptic()
+                                onRedoAppliedReview()
+                            },
+                            onRegenerate = {
+                                performHaptic()
+                                onRegenerateReview()
+                            },
+                            isBusy = state.isAiBusy,
                             onClose = {
                                 performHaptic()
                                 onDismissProofreadDiff()
@@ -680,6 +637,68 @@ fun BayanKeyboardView(
             }
         }
     }
+        AnimatedVisibility(
+            visible = state.statusMessage != null,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 44.dp)
+        ) {
+            val msg = state.statusMessage.orEmpty()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (state.isErrorStatus) Color(0xFFEF4444).copy(alpha = 0.94f)
+                        else palette.accent.copy(alpha = 0.94f)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = msg,
+                    color = if (state.isErrorStatus) Color.White else palette.text,
+                    fontSize = 11.sp,
+                    fontFamily = CairoFontFamily,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (state.isGradualPasting) {
+                    Surface(
+                        onClick = onStopGradualPaste,
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF7F1D1D)
+                    ) {
+                        Text(
+                            text = "إيقاف",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = CairoFontFamily,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                } else if (state.gradualPasteDisabledPrompt) {
+                    Surface(
+                        onClick = onOpenGradualPasteSettings,
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF1D4ED8)
+                    ) {
+                        Text(
+                            text = "تفعيل ⚡",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = CairoFontFamily,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1055,56 +1074,58 @@ private fun SuggestionStrip(
     }
     val stripDirection = if (activeLanguage.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides stripDirection) {
-        LazyRow(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height)
                 .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!recentClipText.isNullOrBlank()) {
-                item(key = "latest_clip_suggestion") {
-                    Row(
-                        modifier = Modifier
-                            .widthIn(max = 175.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(palette.key)
-                            .border(
-                                width = 0.8.dp,
-                                color = palette.accent.copy(alpha = 0.55f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .combinedClickable(
-                                onClick = { onLatestClipTap(recentClipText) },
-                                onLongClick = { onLatestClipLongPress(recentClipText) }
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.ContentPaste,
-                            contentDescription = "Last Copied Text",
-                            tint = palette.accent,
-                            modifier = Modifier.size(if (isPreviewMode) 11.dp else 13.dp)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(height)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(palette.key)
+                        .border(
+                            width = 0.8.dp,
+                            color = palette.accent.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(8.dp)
                         )
-                        Text(
-                            text = recentClipText.replace('\n', ' '),
-                            color = palette.text,
-                            fontSize = if (isPreviewMode) 10.5.sp else 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = CairoFontFamily,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        .combinedClickable(
+                            onClick = { onLatestClipTap(recentClipText) },
+                            onLongClick = { onLatestClipLongPress(recentClipText) }
                         )
-                    }
+                        .padding(horizontal = 5.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ContentPaste,
+                        contentDescription = "Last Copied Text",
+                        tint = palette.accent,
+                        modifier = Modifier.size(if (isPreviewMode) 11.dp else 13.dp)
+                    )
+                    Text(
+                        text = recentClipText.replace('\n', ' '),
+                        color = palette.text,
+                        fontSize = if (isPreviewMode) 10.5.sp else 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = CairoFontFamily,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    )
                 }
             }
 
-            items(suggestions) { item ->
+            suggestions.forEach { item ->
                 Row(
                     modifier = Modifier
+                        .weight(1f)
+                        .height(height)
                         .clip(RoundedCornerShape(8.dp))
                         .background(
                             if (item.isSpellCorrection || item.targetLanguageSwitch != null)
@@ -1112,9 +1133,9 @@ private fun SuggestionStrip(
                             else palette.specialKey.copy(alpha = 0.75f)
                         )
                         .clickable { onSuggestionClick(item) }
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                        .padding(horizontal = 4.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     if (item.targetLanguageSwitch != null) {
                         Text(
@@ -1130,7 +1151,8 @@ private fun SuggestionStrip(
                         fontSize = if (isPreviewMode) 11.sp else 13.sp,
                         fontWeight = if (item.isSpellCorrection) FontWeight.Bold else FontWeight.Medium,
                         fontFamily = CairoFontFamily,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -1320,7 +1342,7 @@ private fun KeyboardKeyButton(
         if (showLongPressOptions && spec.longPressChars.isNotEmpty()) {
             Popup(
                 alignment = Alignment.TopCenter,
-                offset = IntOffset(0, -keyHeightPx),
+                offset = IntOffset(0, keyHeightPx),
                 onDismissRequest = { showLongPressOptions = false }
             ) {
                 Surface(
@@ -2388,6 +2410,10 @@ private fun KeyboardProofreadDiffPanel(
     onApply: () -> Unit,
     onApplyGradually: () -> Unit,
     onCopy: () -> Unit,
+    onUndoApplied: () -> Unit,
+    onRedoApplied: () -> Unit,
+    onRegenerate: () -> Unit,
+    isBusy: Boolean,
     onClose: () -> Unit
 ) {
     val diffAnnotated = remember(review.originalText, review.correctedText, palette.text) {
@@ -2534,7 +2560,7 @@ private fun KeyboardProofreadDiffPanel(
 
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = palette.accent,
+                color = palette.accent.copy(alpha = if (review.isApplied || review.canRedo) 0.55f else 1f),
                 contentColor = Color.White,
                 modifier = Modifier
                     .weight(1.25f)
@@ -2542,8 +2568,8 @@ private fun KeyboardProofreadDiffPanel(
                     .minimumInteractiveComponentSize()
                     .clip(RoundedCornerShape(10.dp))
                     .combinedClickable(
-                        onClick = onApply,
-                        onLongClick = onApplyGradually
+                        onClick = { if (!review.isApplied && !review.canRedo) onApply() },
+                        onLongClick = { if (!review.isApplied && !review.canRedo) onApplyGradually() }
                     )
                     .testTag("proofread_apply_button")
             ) {
@@ -2557,7 +2583,11 @@ private fun KeyboardProofreadDiffPanel(
                     Icon(Icons.Rounded.Check, contentDescription = "Apply", modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(5.dp))
                     Text(
-                        text = "تطبيق",
+                        text = when {
+                            review.isApplied -> "تم التطبيق"
+                            review.canRedo -> "اضغط إعادة"
+                            else -> "تطبيق"
+                        },
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = CairoFontFamily
@@ -2578,6 +2608,68 @@ private fun KeyboardProofreadDiffPanel(
                     }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            ReviewActionButton(
+                text = "تراجع",
+                enabled = review.isApplied,
+                palette = palette,
+                modifier = Modifier.weight(1f),
+                onClick = onUndoApplied
+            )
+            ReviewActionButton(
+                text = "إعادة",
+                enabled = review.canRedo,
+                palette = palette,
+                modifier = Modifier.weight(1f),
+                onClick = onRedoApplied
+            )
+            ReviewActionButton(
+                text = if (isBusy) "جارٍ الإنشاء…" else "إعادة الإنشاء",
+                enabled = !isBusy,
+                palette = palette,
+                emphasized = true,
+                modifier = Modifier.weight(1.4f),
+                onClick = onRegenerate
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewActionButton(
+    text: String,
+    enabled: Boolean,
+    palette: ResolvedKeyboardPalette,
+    modifier: Modifier = Modifier,
+    emphasized: Boolean = false,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(9.dp),
+        color = if (emphasized) palette.accent.copy(alpha = if (enabled) 1f else 0.45f)
+        else palette.specialKey.copy(alpha = if (enabled) 1f else 0.55f),
+        contentColor = if (emphasized) Color.White else palette.text,
+        modifier = modifier
+            .height(36.dp)
+            .minimumInteractiveComponentSize()
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = CairoFontFamily,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
     }
 }
