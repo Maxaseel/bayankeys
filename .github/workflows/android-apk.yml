@@ -47,11 +47,23 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
 
-      - name: Upload APK artifact
+      - name: Build unsigned release APK
+        run: gradle --no-daemon :app:assembleRelease -PunsignedRelease=true
+
+      - name: Upload debug APK artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bayan-keys-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload unsigned release APK artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bayan-keys-unsigned-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
           retention-days: 14

@@ -45,9 +45,12 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
-      // AI Studio.
-      signingConfig = signingConfigs.getByName("release")
+      // Signed release builds remain the default. CI may explicitly request an unsigned APK.
+      signingConfig = if (providers.gradleProperty("unsignedRelease").orNull == "true") {
+        null
+      } else {
+        signingConfigs.getByName("release")
+      }
     }
     debug {
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
