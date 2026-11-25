@@ -311,6 +311,9 @@ class AiTranslationService {
         userPrompt: String,
         config: AiProviderConfig
     ): Result<String> {
+        if (userPrompt.isBlank()) {
+            return Result.failure(IllegalArgumentException("قائمة الرسائل فارغة أو محتواها الأخير فارغ"))
+        }
         val configuredKey = config.keyFor()
         val apiKey = if (configuredKey == "no-key-needed") "" else configuredKey.trim()
         if (apiKey.isBlank() && !config.aiProvider.isApiKeyOptional(config.aiCustomBaseUrl)) {
@@ -320,7 +323,11 @@ class AiTranslationService {
 
         return try {
             when (config.aiProvider) {
-                AiProviderType.EXAM1 -> callExam1(resolveExam1Url(config), userPrompt, config.stream)
+                AiProviderType.EXAM1 -> callExam1(
+                    resolveExam1Url(config),
+                    composeInstructionAwarePrompt(systemPrompt, userPrompt),
+                    config.stream
+                )
                 AiProviderType.GROKCLOUD -> callGrokCloud(model, systemPrompt, userPrompt, config.stream)
                 AiProviderType.GEMINI -> callGemini(apiKey, model, systemPrompt, userPrompt)
                 AiProviderType.ANTHROPIC -> callAnthropic(apiKey, model, systemPrompt, userPrompt)
@@ -333,13 +340,24 @@ class AiTranslationService {
                     } else {
                         config.aiProvider.defaultBaseUrl
                     }
-                    if (config.aiProvider.isApiKeyOptional(endpoint)) callExam1(endpoint, userPrompt, config.stream)
-                    else callOpenAiCompatible(endpoint, apiKey, model, systemPrompt, userPrompt)
+                    if (config.aiProvider.isApiKeyOptional(endpoint)) {
+                        callExam1(endpoint, composeInstructionAwarePrompt(systemPrompt, userPrompt), config.stream)
+                    } else callOpenAiCompatible(endpoint, apiKey, model, systemPrompt, userPrompt)
                 }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun composeInstructionAwarePrompt(systemPrompt: String, userPrompt: String): String = buildString {
+        appendLine("Application task instructions (follow these instructions when processing the user's input):")
+        appendLine(systemPrompt.trim())
+        appendLine()
+        appendLine("User input to process:")
+        appendLine("<keyboard_user_input>")
+        appendLine(userPrompt)
+        append("</keyboard_user_input>")
     }
 
     private fun isExam1Config(config: AiProviderConfig): Boolean =
@@ -407,10 +425,11 @@ class AiTranslationService {
         val history = JSONArray()
             .put(JSONObject().put("role", "system").put("content", systemPrompt))
             .put(JSONObject().put("role", "user").put("content", userPrompt))
+        val instructionAwareUserQuery = composeInstructionAwarePrompt(systemPrompt, userPrompt)
         val body = JSONObject().apply {
             put("appName", "transcribe")
             put("responseType", "json")
-            put("userQuery", userPrompt)
+            put("userQuery", instructionAwareUserQuery)
             put("context", "You are a helpful assistant.")
             put("maxTokens", 1024)
             put("model", selectedModel)
