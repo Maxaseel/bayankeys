@@ -646,6 +646,10 @@ fun BayanKeyboardView(
                                 performHaptic()
                                 onRegenerateReview()
                             },
+                            onChangeTargetLanguage = {
+                                performHaptic()
+                                onPanelChange(KeyboardPanel.TRANSLATE_TARGET)
+                            },
                             isBusy = state.isAiBusy,
                             onClose = {
                                 performHaptic()
@@ -2553,6 +2557,7 @@ private fun KeyboardProofreadDiffPanel(
     onUndoApplied: () -> Unit,
     onRedoApplied: () -> Unit,
     onRegenerate: () -> Unit,
+    onChangeTargetLanguage: () -> Unit,
     isBusy: Boolean,
     onClose: () -> Unit
 ) {
@@ -2607,6 +2612,7 @@ private fun KeyboardProofreadDiffPanel(
                         fontFamily = LocalBayanFontFamily.current
                     )
                     Surface(
+                        onClick = onChangeTargetLanguage,
                         shape = CircleShape,
                         color = Color.Transparent,
                         border = BorderStroke(1.5.dp, palette.accent),
