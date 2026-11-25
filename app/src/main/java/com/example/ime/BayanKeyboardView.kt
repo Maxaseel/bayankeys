@@ -1378,6 +1378,19 @@ private fun KeyboardKeyButton(
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
+                    if (spec.longPressChars.isNotEmpty() && !isPreviewMode) {
+                        Text(
+                            text = displayLongPressVariant(spec.longPressChars.first()),
+                            color = palette.text.copy(alpha = 0.78f),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = LocalBayanFontFamily.current,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(end = 3.dp, top = 1.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1391,12 +1404,13 @@ private fun KeyboardKeyButton(
             ) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = palette.accent,
+                    color = if (palette.isDark) Color(0xFF182235) else Color(0xFFF8FAFC),
+                    contentColor = palette.text,
                     shadowElevation = 6.dp
                 ) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(optionColumns),
-                        modifier = Modifier.width(popupWidth).height((optionRows * 36).dp),
+                        modifier = Modifier.width(popupWidth).height(popupHeight),
                         contentPadding = PaddingValues(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -1409,13 +1423,18 @@ private fun KeyboardKeyButton(
                                         .fillMaxWidth()
                                         .height(34.dp)
                                         .clip(RoundedCornerShape(7.dp))
-                                        .background(if (index == selectedLongPressIndex) Color.White.copy(alpha = 0.32f) else Color.Transparent),
+                                        .background(if (index == selectedLongPressIndex) palette.accent.copy(alpha = 0.22f) else Color.Transparent)
+                                        .clickable {
+                                            selectedLongPressIndex = index
+                                            showLongPressOptions = false
+                                            onLongPressChar(variant)
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = variant,
-                                        color = Color.White,
-                                        fontSize = 16.sp,
+                                        text = displayLongPressVariant(variant),
+                                        color = palette.text,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         textAlign = TextAlign.Center
@@ -1428,6 +1447,16 @@ private fun KeyboardKeyButton(
             }
         }
     }
+}
+
+private fun displayLongPressVariant(variant: String): String {
+    val consistsOnlyOfCombiningMarks = variant.isNotEmpty() && variant.all { char ->
+        val type = Character.getType(char)
+        type == Character.NON_SPACING_MARK.toInt() ||
+            type == Character.COMBINING_SPACING_MARK.toInt() ||
+            type == Character.ENCLOSING_MARK.toInt()
+    }
+    return if (consistsOnlyOfCombiningMarks) "\u25CC$variant" else variant
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1511,7 +1540,7 @@ private fun KeyboardClipboardPanel(
                             Text(
                                 text = "حديثة (غير مثبتة) • Recent",
                                 color = palette.text.copy(alpha = 0.65f),
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = LocalBayanFontFamily.current
                             )
@@ -1541,7 +1570,7 @@ private fun KeyboardClipboardPanel(
                                         Text(
                                             text = clip.text,
                                             color = palette.text,
-                                            fontSize = 11.sp,
+                                            fontSize = 12.sp,
                                             fontFamily = LocalBayanFontFamily.current,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -1588,7 +1617,7 @@ private fun KeyboardClipboardPanel(
                         Text(
                             text = "النصوص المثبتة • Pinned",
                             color = palette.accent,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = LocalBayanFontFamily.current
                         )
@@ -1620,7 +1649,7 @@ private fun KeyboardClipboardPanel(
                                     Text(
                                         text = clip.text,
                                         color = palette.text,
-                                        fontSize = 11.5.sp,
+                                        fontSize = 12.5.sp,
                                         fontFamily = LocalBayanFontFamily.current,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,

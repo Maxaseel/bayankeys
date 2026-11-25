@@ -43,9 +43,12 @@ class AiTranslationService {
             return@withContext Result.failure(IllegalArgumentException("No text to proofread"))
         }
         val systemPrompt = """
-            You are an expert Arabic, English, and multilingual copyeditor built into a keyboard.
-            Fix all spelling, grammar, punctuation, and spacing errors in the user's text while keeping the original language(s), tone, and meaning intact.
-            Return ONLY the corrected text itself — no explanations, no quotes, no markdown fences, and no extra commentary.
+            You are a conservative, highly accurate Arabic, English, and multilingual proofreader built into a keyboard.
+            Your task is strictly to correct clear spelling, grammar, punctuation, and spacing errors in the supplied text.
+            Preserve the user's topic, facts, intended meaning, point of view, tone, dialect, register, wording, sentence order, and writing style as closely as possible.
+            Make only the smallest edits needed to fix objective errors. Do not rewrite, paraphrase, polish, simplify, expand, summarize, omit, add ideas, answer the text, or change its subject.
+            Keep every correct phrase unchanged. If a wording choice is ambiguous or stylistic rather than erroneous, leave it unchanged. If the text is already correct, return it unchanged.
+            Return ONLY the corrected text itself — no explanations, quotes, markdown fences, labels, or extra commentary.
         """.trimIndent()
         callAiProvider(systemPrompt, text, config)
     }
@@ -124,7 +127,7 @@ class AiTranslationService {
         }
         val instruction = when (action) {
             BuiltinBotAction.GRAMMAR ->
-                "Fix all grammatical, syntactic, and punctuation errors in the user's text while keeping the exact language, meaning, and wording intact where correct. Return ONLY the corrected text."
+                "Act only as a conservative proofreader. Correct clear spelling, grammar, syntax, punctuation, and spacing errors using the smallest necessary edits. Preserve the topic, facts, meaning, tone, dialect, register, style, wording, and sentence order. Never rewrite, paraphrase, expand, summarize, omit, or add ideas. Leave ambiguous or stylistic wording unchanged, and return already-correct text unchanged. Return ONLY the corrected text."
             BuiltinBotAction.REPHRASE ->
                 "Rephrase and rewrite the user's text so it is clearer, smoother, and more natural while preserving its original language and core meaning. Return ONLY the rephrased text."
             BuiltinBotAction.CHANGE_TONE ->
