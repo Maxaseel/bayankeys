@@ -600,7 +600,8 @@ class BayanViewModel(
         siteUrl: String,
         username: String,
         password: String,
-        brand: PasswordServiceBrand? = null
+        brand: PasswordServiceBrand? = null,
+        localIconPath: String? = null
     ) {
         viewModelScope.launch {
             repository.savePasswordEntry(
@@ -609,7 +610,8 @@ class BayanViewModel(
                 siteUrl = siteUrl,
                 username = username,
                 password = password,
-                brand = brand
+                brand = brand,
+                localIconPath = localIconPath
             )
         }
     }

@@ -509,6 +509,9 @@ private fun BayanAppShell(
                             onSaveEntry = { id, site, url, user, pass, brand ->
                                 viewModel.savePasswordEntry(id, site, url, user, pass, brand)
                             },
+                            onSaveEntryWithIcon = { id, site, url, user, pass, brand, localIconPath ->
+                                viewModel.savePasswordEntry(id, site, url, user, pass, brand, localIconPath)
+                            },
                             onDeleteEntry = viewModel::deletePasswordEntry
                         )
                     }

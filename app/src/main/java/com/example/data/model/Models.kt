@@ -171,9 +171,63 @@ enum class TargetTranslateLanguage(
     JAPANESE("ja", "JA", "🇯🇵", "Japanese", "اليابانية"),
     KOREAN("ko", "KO", "🇰🇷", "Korean", "الكورية"),
     URDU("ur", "UR", "🇵🇰", "Urdu", "الأردية"),
-    HINDI("hi", "HI", "🇮🇳", "Hindi", "الهندية");
+    HINDI("hi", "HI", "🇮🇳", "Hindi", "الهندية"),
+    DUTCH("nl", "NL", "🇳🇱", "Dutch", "الهولندية"),
+    GREEK("el", "EL", "🇬🇷", "Greek", "اليونانية"),
+    SWEDISH("sv", "SV", "🇸🇪", "Swedish", "السويدية"),
+    NORWEGIAN("no", "NB", "🇳🇴", "Norwegian", "النرويجية"),
+    DANISH("da", "DA", "🇩🇰", "Danish", "الدنماركية"),
+    FINNISH("fi", "FI", "🇫🇮", "Finnish", "الفنلندية"),
+    POLISH("pl", "PL", "🇵🇱", "Polish", "البولندية"),
+    CZECH("cs", "CS", "🇨🇿", "Czech", "التشيكية"),
+    SLOVAK("sk", "SK", "🇸🇰", "Slovak", "السلوفاكية"),
+    UKRAINIAN("uk", "UK", "🇺🇦", "Ukrainian", "الأوكرانية"),
+    BULGARIAN("bg", "BG", "🇧🇬", "Bulgarian", "البلغارية"),
+    ROMANIAN("ro", "RO", "🇷🇴", "Romanian", "الرومانية"),
+    HUNGARIAN("hu", "HU", "🇭🇺", "Hungarian", "الهنغارية"),
+    CROATIAN("hr", "HR", "🇭🇷", "Croatian", "الكرواتية"),
+    SERBIAN("sr", "SR", "🇷🇸", "Serbian", "الصربية"),
+    SLOVENIAN("sl", "SL", "🇸🇮", "Slovenian", "السلوفينية"),
+    HEBREW("he", "HE", "🇮🇱", "Hebrew", "العبرية"),
+    THAI("th", "TH", "🇹🇭", "Thai", "التايلندية"),
+    VIETNAMESE("vi", "VI", "🇻🇳", "Vietnamese", "الفيتنامية"),
+    INDONESIAN("id", "ID", "🇮🇩", "Indonesian", "الإندونيسية"),
+    MALAY("ms", "MS", "🇲🇾", "Malay", "الملايوية"),
+    FILIPINO("tl", "TL", "🇵🇭", "Filipino", "الفلبينية"),
+    BENGALI("bn", "BN", "🇧🇩", "Bengali", "البنغالية"),
+    PERSIAN("fa", "FA", "🇮🇷", "Persian", "الفارسية"),
+    SWAHILI("sw", "SW", "🇰🇪", "Swahili", "السواحيلية"),
+    AFRIKAANS("af", "AF", "🇿🇦", "Afrikaans", "الأفريقانية"),
+    AZERBAIJANI("az", "AZ", "🇦🇿", "Azerbaijani", "الأذربيجانية"),
+    CATALAN("ca", "CA", "🇪🇸", "Catalan", "الكتالونية"),
+    ICELANDIC("is", "IS", "🇮🇸", "Icelandic", "الآيسلندية"),
+    MACEDONIAN("mk", "MK", "🇲🇰", "Macedonian", "المقدونية"),
+    NEPALI("ne", "NE", "🇳🇵", "Nepali", "النيبالية"),
+    TAMIL("ta", "TA", "🇮🇳", "Tamil", "التاميلية"),
+    TELUGU("te", "TE", "🇮🇳", "Telugu", "التيلوغوية"),
+    MARATHI("mr", "MR", "🇮🇳", "Marathi", "الماراثية"),
+    KANNADA("kn", "KN", "🇮🇳", "Kannada", "الكانادا"),
+    PUNJABI("pa", "PA", "🇮🇳", "Punjabi", "البنجابية"),
+    BURMESE("my", "MY", "🇲🇲", "Burmese", "البورمية"),
+    KHMER("km", "KM", "🇰🇭", "Khmer", "الخميرية"),
+    GEORGIAN("ka", "KA", "🇬🇪", "Georgian", "الجورجية"),
+    ARMENIAN("hy", "HY", "🇦🇲", "Armenian", "الأرمنية"),
+    UZBEK("uz", "UZ", "🇺🇿", "Uzbek", "الأوزبكية"),
+    KAZAKH("kk", "KK", "🇰🇿", "Kazakh", "الكازاخية"),
+    ALBANIAN("sq", "SQ", "🇦🇱", "Albanian", "الألبانية"),
+    BOSNIAN("bs", "BS", "🇧🇦", "Bosnian", "البوسنية"),
+    IRISH("ga", "GA", "🇮🇪", "Irish", "الأيرلندية"),
+    SOMALI("so", "SO", "🇸🇴", "Somali", "الصومالية"),
+    PASHTO("ps", "PS", "🇦🇫", "Pashto", "البشتوية"),
+    WELSH("cy", "CY", "🏴", "Welsh", "الويلزية"),
+    AMHARIC("am", "AM", "🇪🇹", "Amharic", "الأمهرية");
 
     companion object {
+        val quickChoices: List<TargetTranslateLanguage> = listOf(
+            ARABIC, ENGLISH, FRENCH, SPANISH, GERMAN, TURKISH, ITALIAN,
+            PORTUGUESE, RUSSIAN, CHINESE, JAPANESE, KOREAN, URDU, HINDI
+        )
+
         fun fromCode(code: String?): TargetTranslateLanguage =
             entries.firstOrNull { it.code == code } ?: ENGLISH
     }
@@ -610,6 +664,7 @@ data class PasswordEntryItem(
     val username: String,
     val password: String,
     val brand: PasswordServiceBrand = PasswordServiceBrand.CUSTOM,
+    val localIconPath: String? = null,
     val updatedAt: Long = System.currentTimeMillis()
 )
 

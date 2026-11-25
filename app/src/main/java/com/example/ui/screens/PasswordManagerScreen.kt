@@ -3,6 +3,9 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +48,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +56,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +79,11 @@ import com.example.data.model.PasswordEntryItem
 import com.example.data.model.PasswordServiceBrand
 import com.example.ui.AppStrings.pick
 import com.example.ui.components.ProvideSafeTextToolbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
 import com.example.ui.components.ServiceBrandIcon
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -89,7 +100,8 @@ fun PasswordManagerScreen(
         brand: PasswordServiceBrand
     ) -> Unit,
     onDeleteEntry: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSaveEntryWithIcon: ((Long, String, String, String, String, PasswordServiceBrand, String?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -114,8 +126,10 @@ fun PasswordManagerScreen(
                 showEditorDialog = false
                 editingEntry = null
             },
-            onSave = { siteName, siteUrl, username, password, brand ->
-                onSaveEntry(
+            onSave = { siteName, siteUrl, username, password, brand, localIconPath ->
+                onSaveEntryWithIcon?.invoke(
+                    editingEntry?.id ?: 0L, siteName, siteUrl, username, password, brand, localIconPath
+                ) ?: onSaveEntry(
                     editingEntry?.id ?: 0L,
                     siteName,
                     siteUrl,
@@ -336,7 +350,7 @@ fun PasswordManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                ServiceBrandIcon(brand = entry.brand, size = 38.dp)
+                                ServiceBrandIcon(brand = entry.brand, localIconPath = entry.localIconPath, size = 38.dp)
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = entry.siteName,
@@ -387,7 +401,7 @@ private fun CredentialPopupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { ServiceBrandIcon(brand = entry.brand, size = 44.dp) },
+        icon = { ServiceBrandIcon(brand = entry.brand, localIconPath = entry.localIconPath, size = 44.dp) },
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(entry.siteName, fontWeight = FontWeight.Bold)
@@ -485,13 +499,35 @@ private fun PasswordEntryEditorDialog(
     isAr: Boolean,
     initial: PasswordEntryItem?,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, PasswordServiceBrand) -> Unit
+    onSave: (String, String, String, String, PasswordServiceBrand, String?) -> Unit
 ) {
     var siteName by remember(initial) { mutableStateOf(initial?.siteName.orEmpty()) }
     var siteUrl by remember(initial) { mutableStateOf(initial?.siteUrl.orEmpty()) }
     var username by remember(initial) { mutableStateOf(initial?.username.orEmpty()) }
     var password by remember(initial) { mutableStateOf(initial?.password.orEmpty()) }
     var selectedBrand by remember(initial) { mutableStateOf(initial?.brand ?: PasswordServiceBrand.GOOGLE) }
+    var localIconPath by remember(initial) { mutableStateOf(initial?.localIconPath) }
+    var iconBusy by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            iconBusy = true
+            scope.launch {
+                localIconPath = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val directory = File(context.filesDir, "password_icons").apply { mkdirs() }
+                        val destination = File(directory, "${UUID.randomUUID()}.img")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            destination.outputStream().use(input::copyTo)
+                        } ?: error("Unable to read image")
+                        destination.absolutePath
+                    }.getOrNull()
+                }
+                iconBusy = false
+            }
+        }
+    }
     var showPassword by remember { mutableStateOf(false) }
     var dialogToolbarRef by remember { mutableStateOf<androidx.compose.ui.platform.TextToolbar?>(null) }
 
@@ -515,6 +551,16 @@ private fun PasswordEntryEditorDialog(
                         text = pick(isAr, "أيقونة الموقع / التطبيق", "Site / App Icon"),
                         style = MaterialTheme.typography.labelMedium
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ServiceBrandIcon(brand = selectedBrand, localIconPath = localIconPath, size = 42.dp)
+                        OutlinedButton(onClick = { dialogToolbar.hide(); imagePicker.launch(arrayOf("image/*")) }) {
+                            Text(pick(isAr, "اختيار صورة", "Choose image"))
+                        }
+                        if (localIconPath != null) TextButton(onClick = { localIconPath = null }) {
+                            Text(pick(isAr, "إزالة", "Remove"))
+                        }
+                        if (iconBusy) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -587,7 +633,7 @@ private fun PasswordEntryEditorDialog(
             Button(
                 onClick = {
                     dialogToolbarRef?.hide()
-                    onSave(siteName, siteUrl, username, password, selectedBrand)
+                    onSave(siteName, siteUrl, username, password, selectedBrand, localIconPath)
                 },
                 enabled = username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.testTag("pw_save_button")

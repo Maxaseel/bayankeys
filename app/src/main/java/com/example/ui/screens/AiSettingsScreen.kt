@@ -704,7 +704,7 @@ fun AiSettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            TargetTranslateLanguage.entries.forEach { lang ->
+                            (listOf(transTargetLang) + TargetTranslateLanguage.quickChoices.filterNot { it == transTargetLang }).forEach { lang ->
                                 FilterChip(
                                     selected = transTargetLang == lang,
                                     onClick = {

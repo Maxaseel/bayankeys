@@ -1,6 +1,8 @@
 package com.example.ui.components
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,20 +25,41 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import com.example.data.model.PasswordServiceBrand
 
 @Composable
 fun ServiceBrandIcon(
     brand: PasswordServiceBrand,
     size: Dp = 38.dp,
+    localIconPath: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val customBitmap = produceState<android.graphics.Bitmap?>(initialValue = null, localIconPath) {
+        value = withContext(Dispatchers.IO) {
+            localIconPath?.let { path ->
+                runCatching {
+                    val file = File(path)
+                    if (!file.isFile) return@runCatching null
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(path, bounds)
+                    val maxDimension = 256
+                    var sample = 1
+                    while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) sample *= 2
+                    BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+                }.getOrNull()
+            }
+        }
+    }.value
     val shape = RoundedCornerShape(size * 0.26f)
     val bgModifier = when (brand) {
         PasswordServiceBrand.INSTAGRAM -> Modifier.background(
@@ -53,7 +77,13 @@ fun ServiceBrandIcon(
             .then(bgModifier),
         contentAlignment = Alignment.Center
     ) {
-        when (brand) {
+        if (customBitmap != null) {
+            Image(
+                bitmap = customBitmap.asImageBitmap(),
+                contentDescription = brand.labelEn,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else when (brand) {
             PasswordServiceBrand.GOOGLE -> {
                 Canvas(modifier = Modifier.fillMaxSize().padding(size * 0.2f)) {
                     val strokeWidth = this.size.minDimension * 0.22f

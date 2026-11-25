@@ -61,6 +61,7 @@ class BayanRepository(
                 username = entity.username,
                 password = VaultCryptoHelper.decrypt(entity.encryptedPassword),
                 brand = PasswordServiceBrand.fromId(entity.brandId),
+                localIconPath = entity.localIconPath,
                 updatedAt = entity.updatedAt
             )
         }
@@ -244,7 +245,8 @@ class BayanRepository(
         siteUrl: String,
         username: String,
         password: String,
-        brand: PasswordServiceBrand? = null
+        brand: PasswordServiceBrand? = null,
+        localIconPath: String? = null
     ): Long = withContext(Dispatchers.IO) {
         val cleanSite = siteName.trim()
         val cleanUrl = siteUrl.trim()
@@ -259,6 +261,7 @@ class BayanRepository(
                 username = cleanUser,
                 encryptedPassword = encrypted,
                 brandId = resolvedBrand.id,
+                localIconPath = localIconPath,
                 updatedAt = System.currentTimeMillis()
             )
         )

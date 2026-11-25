@@ -62,6 +62,7 @@ data class PasswordEntryEntity(
     val username: String,
     val encryptedPassword: String,
     val brandId: String = "custom",
+    val localIconPath: String? = null,
     val updatedAt: Long = System.currentTimeMillis()
 )
 

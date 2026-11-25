@@ -804,7 +804,7 @@ private fun TargetLanguagePickerDialog(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.height(340.dp)
             ) {
-                items(TargetTranslateLanguage.entries) { lang ->
+                items(listOf(selected) + TargetTranslateLanguage.quickChoices.filterNot { it == selected }) { lang ->
                     val isSelected = lang == selected
                     Surface(
                         shape = RoundedCornerShape(14.dp),

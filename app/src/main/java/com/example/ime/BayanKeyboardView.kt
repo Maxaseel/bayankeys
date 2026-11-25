@@ -2138,6 +2138,12 @@ private fun KeyboardTranslateTargetPanel(
     onSelect: (TargetTranslateLanguage) -> Unit,
     onClose: () -> Unit
 ) {
+    var showAllLanguages by remember(selected) { mutableStateOf(false) }
+    val visibleLanguages = remember(selected, showAllLanguages) {
+        val candidates = if (showAllLanguages) TargetTranslateLanguage.entries
+        else TargetTranslateLanguage.quickChoices
+        listOf(selected) + candidates.filterNot { it == selected }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2156,6 +2162,31 @@ private fun KeyboardTranslateTargetPanel(
                 fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
+            Surface(
+                onClick = { showAllLanguages = !showAllLanguages },
+                shape = RoundedCornerShape(8.dp),
+                color = palette.specialKey
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = "إضافة لغة",
+                        tint = palette.text,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = if (showAllLanguages) "إخفاء" else "إضافة",
+                        color = palette.text,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = LocalBayanFontFamily.current
+                    )
+                }
+            }
             Box(
                 modifier = Modifier
                     .size(30.dp)
@@ -2179,7 +2210,7 @@ private fun KeyboardTranslateTargetPanel(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(TargetTranslateLanguage.entries) { lang ->
+            items(visibleLanguages) { lang ->
                 val isSelected = lang == selected
                 Row(
                     modifier = Modifier
