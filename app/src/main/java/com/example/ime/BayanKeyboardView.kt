@@ -1,6 +1,7 @@
 package com.example.ime
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -2536,29 +2537,80 @@ private fun KeyboardProofreadDiffPanel(
         modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        Spacer(Modifier.height(22.dp))
+        val isTranslation = review.targetLanguage != null
+        val targetIsRtl = review.targetLanguage == TargetTranslateLanguage.ARABIC ||
+            review.targetLanguage == TargetTranslateLanguage.URDU
+        Spacer(Modifier.height(if (isTranslation) 18.dp else 22.dp))
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(if (isTranslation) 26.dp else 24.dp)
         ) {
-            Text(
-                text = correctedLine,
-                modifier = Modifier.fillMaxWidth(),
-                fontSize = 19.sp,
-                lineHeight = 29.sp,
-                fontFamily = LocalBayanFontFamily.current,
-                textAlign = TextAlign.End,
-                style = TextStyle(textDirection = TextDirection.ContentOrRtl)
-            )
-            Text(
-                text = originalLine,
-                modifier = Modifier.fillMaxWidth(),
-                fontSize = 19.sp,
-                lineHeight = 29.sp,
-                fontFamily = LocalBayanFontFamily.current,
-                textAlign = TextAlign.End,
-                style = TextStyle(textDirection = TextDirection.ContentOrRtl)
-            )
+            if (isTranslation) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "النتيجة:",
+                        color = Color(0xFF9B9B9B),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = LocalBayanFontFamily.current
+                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.Transparent,
+                        border = BorderStroke(1.5.dp, palette.accent),
+                        modifier = Modifier.height(42.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = review.targetLanguage!!.labelEn,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontFamily = LocalBayanFontFamily.current
+                            )
+                            Text(text = review.targetLanguage!!.flagEmoji, fontSize = 21.sp)
+                        }
+                    }
+                }
+                Text(
+                    text = review.correctedText,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    fontSize = 19.sp,
+                    lineHeight = 29.sp,
+                    fontFamily = LocalBayanFontFamily.current,
+                    textAlign = if (targetIsRtl) TextAlign.End else TextAlign.Start,
+                    style = TextStyle(
+                        textDirection = if (targetIsRtl) TextDirection.ContentOrRtl else TextDirection.ContentOrLtr
+                    )
+                )
+            } else {
+                Text(
+                    text = correctedLine,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 19.sp,
+                    lineHeight = 29.sp,
+                    fontFamily = LocalBayanFontFamily.current,
+                    textAlign = TextAlign.End,
+                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+                )
+                Text(
+                    text = originalLine,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 19.sp,
+                    lineHeight = 29.sp,
+                    fontFamily = LocalBayanFontFamily.current,
+                    textAlign = TextAlign.End,
+                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+                )
+            }
         }
         Spacer(Modifier.height(10.dp))
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {

@@ -1069,7 +1069,8 @@ class BayanInputMethodService :
                             originalText = targetText,
                             correctedText = translated,
                             replaceWholeField = replaceWholeField,
-                            title = "نتيجة الترجمة • ${targetLang.labelAr}"
+                            title = "نتيجة الترجمة • ${targetLang.labelAr}",
+                            targetLanguage = targetLang
                         ),
                         panel = KeyboardPanel.PROOFREAD_DIFF
                     )

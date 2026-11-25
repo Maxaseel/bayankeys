@@ -557,7 +557,8 @@ data class ProofreadDiffReview(
     val replaceWholeField: Boolean,
     val title: String = "نتيجة التصحيح",
     val isApplied: Boolean = false,
-    val canRedo: Boolean = false
+    val canRedo: Boolean = false,
+    val targetLanguage: TargetTranslateLanguage? = null
 )
 
 enum class PasswordServiceBrand(
