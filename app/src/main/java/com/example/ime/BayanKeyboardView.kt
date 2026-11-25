@@ -2603,7 +2603,7 @@ private fun KeyboardProofreadDiffPanel(
                     fontSize = 19.sp,
                     lineHeight = 29.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    textAlign = if (targetIsRtl) TextAlign.End else TextAlign.Start,
+                    textAlign = if (targetIsRtl) TextAlign.Right else TextAlign.Start,
                     style = TextStyle(
                         textDirection = if (targetIsRtl) TextDirection.Rtl else TextDirection.Ltr
                     )
@@ -2615,7 +2615,7 @@ private fun KeyboardProofreadDiffPanel(
                     fontSize = 19.sp,
                     lineHeight = 29.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Right,
                     style = TextStyle(textDirection = TextDirection.Rtl)
                 )
                 Text(
@@ -2624,7 +2624,7 @@ private fun KeyboardProofreadDiffPanel(
                     fontSize = 19.sp,
                     lineHeight = 29.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Right,
                     style = TextStyle(textDirection = TextDirection.Rtl)
                 )
             }
