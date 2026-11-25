@@ -289,6 +289,21 @@ enum class KeyButtonShape(
     }
 }
 
+enum class KeyboardFontStyle(
+    val id: String,
+    val labelAr: String,
+    val labelEn: String
+) {
+    CAIRO("cairo", "كايرو", "Cairo"),
+    IBM_PLEX("ibm_plex", "IBM Plex Sans Arabic", "IBM Plex Sans Arabic"),
+    SYSTEM_SANS("system_sans", "خط الهاتف", "System sans"),
+    SYSTEM_SERIF("system_serif", "نسخي النظام", "System serif");
+
+    companion object {
+        fun fromId(id: String?): KeyboardFontStyle = entries.firstOrNull { it.id == id } ?: CAIRO
+    }
+}
+
 data class KeyboardThemeConfig(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val presetId: String = KeyboardThemePresets.midnightEmerald.id,
@@ -299,7 +314,8 @@ data class KeyboardThemeConfig(
     val textArgb: Long = KeyboardThemePresets.midnightEmerald.textArgb,
     val keyCornerRadiusDp: Float = 9f,
     val showKeyBorders: Boolean = true,
-    val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED
+    val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED,
+    val fontStyle: KeyboardFontStyle = KeyboardFontStyle.CAIRO
 ) {
     fun resolvePalette(isSystemDark: Boolean): ResolvedKeyboardPalette {
         val useDark = when (themeMode) {

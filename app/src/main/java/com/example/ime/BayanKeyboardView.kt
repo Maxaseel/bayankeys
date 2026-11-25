@@ -152,7 +152,7 @@ import com.example.ui.components.KeyButtonShapeGrid
 import com.example.ui.components.ServiceBrandIcon
 import com.example.ui.screens.botIconVector
 import com.example.ui.screens.builtinBotActionIcon
-import com.example.ui.theme.CairoFontFamily
+import com.example.ui.theme.LocalBayanFontFamily
 import com.example.util.WordDiffUtil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -664,7 +664,7 @@ fun BayanKeyboardView(
                     text = msg,
                     color = if (state.isErrorStatus) Color.White else palette.text,
                     fontSize = 11.sp,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -680,7 +680,7 @@ fun BayanKeyboardView(
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -695,7 +695,7 @@ fun BayanKeyboardView(
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -776,7 +776,7 @@ private fun KeyboardToolbar(
                                     text = if (state.activeLanguage == KeyboardLanguage.ARABIC) "تصحيح" else "Fix AI",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = CairoFontFamily
+                                    fontFamily = LocalBayanFontFamily.current
                                 )
                             }
                         }
@@ -995,7 +995,7 @@ private fun KeyboardToolbar(
                     Text(
                         text = if (state.activeLanguage == KeyboardLanguage.ARABIC) "تراجع" else "Undo",
                         fontSize = 10.sp,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                 }
             }
@@ -1070,7 +1070,7 @@ private fun SuggestionStrip(
                 text = if (isIncognito) "وضع التصفح المتخفي • Incognito" else "Bayan AI • بيان",
                 color = if (isIncognito) Color(0xFFA78BFA).copy(alpha = 0.7f) else palette.text.copy(alpha = 0.35f),
                 fontSize = 11.sp,
-                fontFamily = CairoFontFamily
+                fontFamily = LocalBayanFontFamily.current
             )
         }
         return
@@ -1116,7 +1116,7 @@ private fun SuggestionStrip(
                         color = palette.text,
                         fontSize = if (isPreviewMode) 10.5.sp else 12.sp,
                         fontWeight = FontWeight.Medium,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).padding(start = 4.dp)
@@ -1153,7 +1153,7 @@ private fun SuggestionStrip(
                         color = palette.text,
                         fontSize = if (isPreviewMode) 11.sp else 13.sp,
                         fontWeight = if (item.isSpellCorrection) FontWeight.Bold else FontWeight.Medium,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1343,7 +1343,7 @@ private fun KeyboardKeyButton(
                         color = fgColor,
                         fontSize = (fontSp * 0.6f).sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         maxLines = 1
                     )
                 }
@@ -1353,7 +1353,7 @@ private fun KeyboardKeyButton(
                     text = spec.label,
                     color = fgColor.copy(alpha = 0.65f),
                     fontSize = (fontSp * 0.68f).sp,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     maxLines = 1
                 )
             }
@@ -1364,7 +1364,7 @@ private fun KeyboardKeyButton(
                         color = fgColor,
                         fontSize = if (spec.kind == KeyKind.SYMBOLS_TOGGLE) (fontSp * 0.66f).sp else fontSp.sp,
                         fontWeight = FontWeight.Normal,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
@@ -1456,14 +1456,14 @@ private fun KeyboardClipboardPanel(
                 color = palette.text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = if (gradualEnabled) "⚡ مطوّل = لصق تدريجي" else "مطوّل = لصق تدريجي (غير مفعل)",
                 color = if (gradualEnabled) Color(0xFFF59E0B) else palette.text.copy(alpha = 0.55f),
                 fontSize = 9.5.sp,
-                fontFamily = CairoFontFamily
+                fontFamily = LocalBayanFontFamily.current
             )
             Box(
                 modifier = Modifier
@@ -1487,7 +1487,7 @@ private fun KeyboardClipboardPanel(
                 Text(
                     text = "لا توجد نصوص منسوخة بعد",
                     color = palette.text.copy(alpha = 0.55f),
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     fontSize = 13.sp
                 )
             }
@@ -1506,7 +1506,7 @@ private fun KeyboardClipboardPanel(
                                 color = palette.text.copy(alpha = 0.65f),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                fontFamily = CairoFontFamily
+                                fontFamily = LocalBayanFontFamily.current
                             )
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1535,7 +1535,7 @@ private fun KeyboardClipboardPanel(
                                             text = clip.text,
                                             color = palette.text,
                                             fontSize = 11.sp,
-                                            fontFamily = CairoFontFamily,
+                                            fontFamily = LocalBayanFontFamily.current,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.weight(1f)
@@ -1583,7 +1583,7 @@ private fun KeyboardClipboardPanel(
                             color = palette.accent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = CairoFontFamily
+                            fontFamily = LocalBayanFontFamily.current
                         )
                     }
                     items(pinnedRows.size, key = { "prow_$it" }) { rowIdx ->
@@ -1614,7 +1614,7 @@ private fun KeyboardClipboardPanel(
                                         text = clip.text,
                                         color = palette.text,
                                         fontSize = 11.5.sp,
-                                        fontFamily = CairoFontFamily,
+                                        fontFamily = LocalBayanFontFamily.current,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
@@ -1710,7 +1710,7 @@ private fun KeyboardPasswordsPanel(
                     color = palette.text,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f)
                 )
@@ -1771,13 +1771,13 @@ private fun KeyboardPasswordsPanel(
                         color = palette.text,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                     Text(
                         text = "اضغط هنا لإضافة حساباتك بأمان",
                         color = palette.text.copy(alpha = 0.65f),
                         fontSize = 11.sp,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                 }
             } else {
@@ -1818,7 +1818,7 @@ private fun KeyboardPasswordsPanel(
                                 color = palette.text,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                fontFamily = CairoFontFamily,
+                                fontFamily = LocalBayanFontFamily.current,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.End,
@@ -1869,7 +1869,7 @@ private fun KeyboardPasswordsPanel(
                                 color = palette.text,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = CairoFontFamily,
+                                fontFamily = LocalBayanFontFamily.current,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
@@ -1895,7 +1895,7 @@ private fun KeyboardPasswordsPanel(
                                 text = "✓ تم لصق البريد/اسم المستخدم — يمكنك الآن لصق كلمة المرور أو الانتقال لحقلها",
                                 color = Color(0xFF10B981),
                                 fontSize = 10.5.sp,
-                                fontFamily = CairoFontFamily
+                                fontFamily = LocalBayanFontFamily.current
                             )
                         }
 
@@ -2007,7 +2007,7 @@ private fun KeyboardEmojiPanel(
                 color = palette.text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
             Box(
@@ -2087,7 +2087,7 @@ private fun KeyboardTranslateTargetPanel(
                 color = palette.text,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
             Box(
@@ -2139,7 +2139,7 @@ private fun KeyboardTranslateTargetPanel(
                             color = if (isSelected) Color.White else palette.text,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2147,7 +2147,7 @@ private fun KeyboardTranslateTargetPanel(
                             text = lang.labelEn,
                             color = if (isSelected) Color.White.copy(alpha = 0.85f) else palette.text.copy(alpha = 0.65f),
                             fontSize = 10.sp,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2207,7 +2207,7 @@ private fun KeyboardToolbarCustomizePanel(
                         color = if (selected) Color.White else palette.text,
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         maxLines = 1
                     )
                 }
@@ -2257,7 +2257,7 @@ private fun KeyboardToolbarCustomizePanel(
                                 color = palette.text,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = CairoFontFamily,
+                                fontFamily = LocalBayanFontFamily.current,
                                 modifier = Modifier.weight(1f)
                             )
                             Switch(
@@ -2290,7 +2290,7 @@ private fun KeyboardToolbarCustomizePanel(
                                             color = if (selected) Color.White else palette.text,
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = CairoFontFamily
+                                            fontFamily = LocalBayanFontFamily.current
                                         )
                                     }
                                 }
@@ -2338,7 +2338,7 @@ private fun KeyboardToolbarCustomizePanel(
                                         color = palette.text,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        fontFamily = CairoFontFamily,
+                                        fontFamily = LocalBayanFontFamily.current,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
@@ -2354,7 +2354,7 @@ private fun KeyboardToolbarCustomizePanel(
                                             color = if (visible) Color.White else palette.text.copy(alpha = 0.7f),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = CairoFontFamily
+                                            fontFamily = LocalBayanFontFamily.current
                                         )
                                     }
                                 }
@@ -2485,7 +2485,7 @@ private fun KeyboardProofreadDiffPanel(
                 color = palette.text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
             // The same review panel is used for translations and proofreading.
@@ -2498,7 +2498,7 @@ private fun KeyboardProofreadDiffPanel(
                     color = Color(0xFFEF4444),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
@@ -2511,7 +2511,7 @@ private fun KeyboardProofreadDiffPanel(
                     color = Color(0xFF10B981),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
@@ -2548,7 +2548,7 @@ private fun KeyboardProofreadDiffPanel(
                     text = review.correctedText,
                     color = palette.text,
                     fontSize = 14.sp,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     lineHeight = 22.sp
                 )
             } else if (review.originalText.trim() == review.correctedText.trim()) {
@@ -2556,14 +2556,14 @@ private fun KeyboardProofreadDiffPanel(
                     text = "✓ لا توجد تغييرات:\n${review.correctedText}",
                     color = Color(0xFF10B981),
                     fontSize = 14.sp,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     lineHeight = 22.sp
                 )
             } else {
                 Text(
                     text = diffAnnotated,
                     fontSize = 14.sp,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     lineHeight = 22.sp
                 )
             }
@@ -2596,7 +2596,7 @@ private fun KeyboardProofreadDiffPanel(
                         text = "نسخ",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                 }
             }
@@ -2633,7 +2633,7 @@ private fun KeyboardProofreadDiffPanel(
                         },
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                     Spacer(Modifier.width(6.dp))
                     Surface(
@@ -2645,7 +2645,7 @@ private fun KeyboardProofreadDiffPanel(
                             text = "⚡ مطوّل",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                         )
                     }
@@ -2708,7 +2708,7 @@ private fun ReviewActionButton(
                 text = text,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 4.dp)
@@ -2808,7 +2808,7 @@ private fun KeyboardQuickToolsPanel(
                 color = palette.text,
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -2823,7 +2823,7 @@ private fun KeyboardQuickToolsPanel(
                         color = Color(0xFFC4B5FD),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
@@ -2865,7 +2865,7 @@ private fun KeyboardQuickToolsPanel(
                         color = palette.accent,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         textAlign = if (isAr) TextAlign.End else TextAlign.Start,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2930,7 +2930,7 @@ private fun KeyboardQuickToolsPanel(
                             color = palette.text,
                             fontSize = 9.5.sp,
                             fontWeight = if (isActiveToggle) FontWeight.Bold else FontWeight.Medium,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -3018,7 +3018,7 @@ private fun KeyboardBotsPanel(
                 color = palette.text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 modifier = Modifier.weight(1f)
             )
             Surface(
@@ -3037,7 +3037,7 @@ private fun KeyboardBotsPanel(
                         text = "إنشاء بوت",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily
+                        fontFamily = LocalBayanFontFamily.current
                     )
                 }
             }
@@ -3052,7 +3052,7 @@ private fun KeyboardBotsPanel(
                         text = "إدارة",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -3118,13 +3118,13 @@ private fun KeyboardBotsPanel(
                                     color = palette.text,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = CairoFontFamily
+                                    fontFamily = LocalBayanFontFamily.current
                                 )
                                 Text(
                                     text = "أنشئ مساعدك الخاص للتعامل مع جميع متطلباتك الشخصية",
                                     color = palette.text.copy(alpha = 0.72f),
                                     fontSize = 11.sp,
-                                    fontFamily = CairoFontFamily,
+                                    fontFamily = LocalBayanFontFamily.current,
                                     lineHeight = 16.sp
                                 )
                             }
@@ -3138,7 +3138,7 @@ private fun KeyboardBotsPanel(
                         color = palette.accent,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = CairoFontFamily,
+                        fontFamily = LocalBayanFontFamily.current,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
@@ -3181,7 +3181,7 @@ private fun KeyboardBotsPanel(
                                     color = palette.text,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = CairoFontFamily,
+                                    fontFamily = LocalBayanFontFamily.current,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -3190,7 +3190,7 @@ private fun KeyboardBotsPanel(
                                         text = "${bot.knowledgeSources.size} مصدر معرفة",
                                         color = palette.text.copy(alpha = 0.6f),
                                         fontSize = 9.sp,
-                                        fontFamily = CairoFontFamily,
+                                        fontFamily = LocalBayanFontFamily.current,
                                         maxLines = 1
                                     )
                                 }
@@ -3206,7 +3206,7 @@ private fun KeyboardBotsPanel(
                     color = palette.text.copy(alpha = 0.65f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
@@ -3240,7 +3240,7 @@ private fun KeyboardBotsPanel(
                             color = palette.text,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

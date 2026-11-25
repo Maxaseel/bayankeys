@@ -15,6 +15,7 @@ import com.example.data.model.AiProviderType
 import com.example.data.model.GradualPasteConfig
 import com.example.data.model.GradualPasteMode
 import com.example.data.model.KeyButtonShape
+import com.example.data.model.KeyboardFontStyle
 import com.example.data.model.KeyboardLanguage
 import com.example.data.model.KeyboardSizeConfig
 import com.example.data.model.KeyboardThemeConfig
@@ -50,6 +51,7 @@ class SettingsRepository(private val context: Context) {
         val KEY_CORNER_RADIUS = floatPreferencesKey("key_corner_radius")
         val SHOW_KEY_BORDERS = booleanPreferencesKey("show_key_borders")
         val KEY_SHAPE = stringPreferencesKey("key_shape")
+        val FONT_STYLE = stringPreferencesKey("font_style")
 
         // Gradual Paste & Typing
         val GP_ENABLED = booleanPreferencesKey("gp_enabled")
@@ -127,7 +129,8 @@ class SettingsRepository(private val context: Context) {
             textArgb = prefs[Keys.TEXT_ARGB] ?: defaultPreset.textArgb,
             keyCornerRadiusDp = prefs[Keys.KEY_CORNER_RADIUS] ?: 9f,
             showKeyBorders = prefs[Keys.SHOW_KEY_BORDERS] ?: true,
-            keyShape = KeyButtonShape.fromId(prefs[Keys.KEY_SHAPE])
+            keyShape = KeyButtonShape.fromId(prefs[Keys.KEY_SHAPE]),
+            fontStyle = KeyboardFontStyle.fromId(prefs[Keys.FONT_STYLE])
         )
     }
 
@@ -384,6 +387,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setKeyShape(shape: KeyButtonShape) {
         context.bayanDataStore.edit { it[Keys.KEY_SHAPE] = shape.id }
+    }
+
+    suspend fun setKeyboardFontStyle(style: KeyboardFontStyle) {
+        context.bayanDataStore.edit { it[Keys.FONT_STYLE] = style.id }
     }
 
     suspend fun updateGradualPasteConfig(transform: (GradualPasteConfig) -> GradualPasteConfig) {

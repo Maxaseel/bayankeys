@@ -33,6 +33,34 @@ enum class KeyKind {
 
 object KeyboardLayouts {
 
+    private val arabicLongPressVariants = listOf("َ", "ُ", "ِ", "ّ", "ْ", "ً", "ٌ", "ٍ", "ـ")
+    private val latinLongPressVariants = mapOf(
+        'a' to listOf("á", "à", "â", "ä", "ã", "å", "æ"),
+        'c' to listOf("ç", "ć", "č"), 'e' to listOf("é", "è", "ê", "ë"),
+        'i' to listOf("í", "ì", "î", "ï"), 'n' to listOf("ñ", "ń"),
+        'o' to listOf("ó", "ò", "ô", "ö", "õ", "ø", "œ"),
+        's' to listOf("ß", "ś", "š"), 'u' to listOf("ú", "ù", "û", "ü"),
+        'y' to listOf("ý", "ÿ"), 'z' to listOf("ž"), 'g' to listOf("ğ")
+    )
+
+    private fun addDefaultLongPressVariants(
+        rows: List<List<KeySpec>>,
+        language: KeyboardLanguage,
+        layer: KeyboardLayer
+    ): List<List<KeySpec>> = rows.map { row ->
+        row.map { key ->
+            if (key.kind != KeyKind.CHARACTER || key.longPressChars.isNotEmpty()) return@map key
+            val label = key.output.lowercase()
+            val variants = when {
+                language == KeyboardLanguage.ARABIC && label.any { it in '\u0621'..'\u064A' } -> arabicLongPressVariants
+                label.length == 1 && label[0] in 'a'..'z' -> latinLongPressVariants[label[0]] ?: listOf("${label}́", "${label}̀")
+                layer == KeyboardLayer.LETTERS -> listOf("${key.output}́", "${key.output}̀")
+                else -> listOf("…", "•", "°")
+            }
+            key.copy(longPressChars = variants.filter { it != key.output }.distinct())
+        }
+    }
+
     val numberRow: List<KeySpec> = listOf(
         KeySpec("1", "1", "1", "1", listOf("١")),
         KeySpec("2", "2", "2", "2", listOf("٢")),
@@ -292,7 +320,7 @@ object KeyboardLayouts {
                 }
             }
         }
-        return core + listOf(bottomRow(language, layer))
+        return addDefaultLongPressVariants(core + listOf(bottomRow(language, layer)), language, layer)
     }
 
     val emojiCategories: List<Pair<String, List<String>>> = listOf(

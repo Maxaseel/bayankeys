@@ -140,7 +140,8 @@ class MainActivity : ComponentActivity() {
 
             BayanTheme(
                 themeMode = themeConfig.themeMode,
-                customAccentColor = Color(themeConfig.accentArgb)
+                customAccentColor = Color(themeConfig.accentArgb),
+                fontStyle = themeConfig.fontStyle
             ) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides if (isAr) LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -478,6 +479,7 @@ private fun BayanAppShell(
                             onUpdateSizeConfig = viewModel::updateSizeConfig,
                             onUpdateToolbarConfig = viewModel::updateToolbarVisibility,
                             onSetKeyShape = viewModel::setKeyShape,
+                            onSetFontStyle = viewModel::setKeyboardFontStyle,
                             onUpdateGradualPasteConfig = viewModel::updateGradualPasteConfig,
                             onToggleLanguage = viewModel::toggleLanguageEnabled,
                             onPreviewSwitchLanguage = viewModel::onPreviewSwitchLanguage,

@@ -60,6 +60,7 @@ import com.example.data.local.ClipboardEntity
 import com.example.data.model.GradualPasteConfig
 import com.example.data.model.KeyButtonShape
 import com.example.data.model.KeyboardLanguage
+import com.example.data.model.KeyboardFontStyle
 import com.example.data.model.KeyboardSizeConfig
 import com.example.data.model.KeyboardThemeConfig
 import com.example.data.model.KeyboardThemePreset
@@ -72,6 +73,7 @@ import com.example.ime.BayanKeyboardView
 import com.example.ime.KeyboardPanel
 import com.example.ime.KeyboardUiState
 import com.example.ui.AppStrings.pick
+import com.example.ui.theme.fontFamilyFor
 import com.example.ui.components.GradualPasteSettingsSection
 import com.example.ui.components.KeyButtonShapeGrid
 import kotlin.math.roundToInt
@@ -109,6 +111,7 @@ fun ThemeStudioScreen(
     onUpdateSizeConfig: ((KeyboardSizeConfig) -> KeyboardSizeConfig) -> Unit,
     onUpdateToolbarConfig: ((ToolbarVisibilityConfig) -> ToolbarVisibilityConfig) -> Unit,
     onSetKeyShape: (KeyButtonShape) -> Unit,
+    onSetFontStyle: (KeyboardFontStyle) -> Unit,
     onUpdateGradualPasteConfig: ((GradualPasteConfig) -> GradualPasteConfig) -> Unit,
     onToggleLanguage: (KeyboardLanguage) -> Unit,
     onPreviewSwitchLanguage: () -> Unit,
@@ -427,6 +430,27 @@ fun ThemeStudioScreen(
                                 compact = false,
                                 onSelectShape = onSetKeyShape
                             )
+                        }
+                    }
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                    ) {
+                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(pick(isAr, "خط التطبيق ولوحة المفاتيح", "App & Keyboard Font"), style = MaterialTheme.typography.titleMedium)
+                            Text(pick(isAr, "اختر الخط الذي يناسب العربية والإنجليزية. المعاينة أدناه.", "Choose a font for Arabic and English. Preview below."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                KeyboardFontStyle.entries.forEach { font ->
+                                    FilterChip(
+                                        selected = themeConfig.fontStyle == font,
+                                        onClick = { onSetFontStyle(font) },
+                                        label = { Text(if (isAr) font.labelAr else font.labelEn) }
+                                    )
+                                }
+                            }
+                            Text("العربية • Bayan Keyboard", fontFamily = fontFamilyFor(themeConfig.fontStyle), style = MaterialTheme.typography.titleLarge)
                         }
                     }
 

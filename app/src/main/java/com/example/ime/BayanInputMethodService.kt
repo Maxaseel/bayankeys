@@ -23,6 +23,7 @@ import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -49,6 +50,8 @@ import com.example.data.model.KeyButtonShape
 import com.example.data.model.KeyboardLanguage
 import com.example.data.model.KeyboardSizeConfig
 import com.example.data.model.KeyboardThemeConfig
+import com.example.ui.theme.LocalBayanFontFamily
+import com.example.ui.theme.fontFamilyFor
 import com.example.data.model.OneHandedMode
 import com.example.data.model.ProofreadDiffReview
 import com.example.data.model.QuickInputTool
@@ -175,6 +178,7 @@ class BayanInputMethodService :
                 val passwordEntries by repository.passwordEntries.collectAsState(initial = emptyList())
                 val customBots by repository.customBots.collectAsState(initial = emptyList())
 
+                CompositionLocalProvider(LocalBayanFontFamily provides fontFamilyFor(themeConfig.fontStyle)) {
                 BayanKeyboardView(
                     state = state,
                     themeConfig = themeConfig,
@@ -249,6 +253,7 @@ class BayanInputMethodService :
                     },
                     onOpenSettings = ::openCompanionSettings
                 )
+                }
             }
         }
     }

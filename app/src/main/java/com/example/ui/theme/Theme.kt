@@ -5,8 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import com.example.data.model.ThemeMode
+import com.example.data.model.KeyboardFontStyle
 
 private val BayanDarkColorScheme = darkColorScheme(
     primary = EmeraldGlow,
@@ -56,8 +58,10 @@ private val BayanLightColorScheme = lightColorScheme(
 fun BayanTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     customAccentColor: Color? = null,
+    fontStyle: KeyboardFontStyle = KeyboardFontStyle.CAIRO,
     content: @Composable () -> Unit
 ) {
+    val fontFamily = fontFamilyFor(fontStyle)
     val systemDark = isSystemInDarkTheme()
     val useDark = when (themeMode) {
         ThemeMode.DARK -> true
@@ -77,9 +81,11 @@ fun BayanTheme(
         baseScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalBayanFontFamily provides fontFamily) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = appTypography(fontFamily),
+            content = content
+        )
+    }
 }

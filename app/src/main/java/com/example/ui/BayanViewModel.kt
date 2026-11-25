@@ -19,6 +19,7 @@ import com.example.data.model.BuiltinBotAction
 import com.example.data.model.CustomBotItem
 import com.example.data.model.GradualPasteConfig
 import com.example.data.model.KeyButtonShape
+import com.example.data.model.KeyboardFontStyle
 import com.example.data.model.KeyboardLanguage
 import com.example.data.model.KeyboardSizeConfig
 import com.example.data.model.KeyboardThemeConfig
@@ -494,6 +495,10 @@ class BayanViewModel(
 
     fun setKeyShape(shape: KeyButtonShape) {
         viewModelScope.launch { settings.setKeyShape(shape) }
+    }
+
+    fun setKeyboardFontStyle(style: KeyboardFontStyle) {
+        viewModelScope.launch { settings.setKeyboardFontStyle(style) }
     }
 
     fun updateGradualPasteConfig(transform: (GradualPasteConfig) -> GradualPasteConfig) {

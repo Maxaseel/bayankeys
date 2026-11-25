@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.GradualPasteConfig
 import com.example.data.model.GradualPasteMode
 import com.example.data.model.KeyButtonShape
-import com.example.ui.theme.CairoFontFamily
+import com.example.ui.theme.LocalBayanFontFamily
 
 @Composable
 fun KeyButtonShapeGrid(
@@ -65,7 +65,7 @@ fun KeyButtonShapeGrid(
             color = accentColor,
             fontSize = if (compact) 12.sp else 14.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = CairoFontFamily
+            fontFamily = LocalBayanFontFamily.current
         )
         rows.forEach { pair ->
             Row(
@@ -97,7 +97,7 @@ fun KeyButtonShapeGrid(
                                 color = if (selected) Color.White else textColor,
                                 fontSize = if (compact) 11.sp else 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                fontFamily = CairoFontFamily,
+                                fontFamily = LocalBayanFontFamily.current,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -153,7 +153,7 @@ fun GradualPasteSettingsSection(
                     color = accentColor,
                     fontSize = if (compact) 11.5.sp else 14.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = CairoFontFamily,
+                    fontFamily = LocalBayanFontFamily.current,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -167,7 +167,7 @@ fun GradualPasteSettingsSection(
                     },
                     color = textColor.copy(alpha = 0.65f),
                     fontSize = if (compact) 9.5.sp else 11.5.sp,
-                    fontFamily = CairoFontFamily
+                    fontFamily = LocalBayanFontFamily.current
                 )
             }
             Switch(
@@ -209,7 +209,7 @@ fun GradualPasteSettingsSection(
                             color = if (selected) Color.White else textColor,
                             fontSize = if (compact) 11.sp else 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = CairoFontFamily,
+                            fontFamily = LocalBayanFontFamily.current,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -405,7 +405,7 @@ private fun GradualScaleRow(
                 color = textColor,
                 fontSize = if (compact) 11.5.sp else 13.5.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -413,7 +413,7 @@ private fun GradualScaleRow(
                 text = subtitle,
                 color = textColor.copy(alpha = 0.65f),
                 fontSize = if (compact) 9.5.sp else 11.sp,
-                fontFamily = CairoFontFamily,
+                fontFamily = LocalBayanFontFamily.current,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
