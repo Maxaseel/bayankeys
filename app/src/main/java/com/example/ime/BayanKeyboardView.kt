@@ -1386,7 +1386,7 @@ private fun KeyboardKeyButton(
         if (showLongPressOptions && spec.longPressChars.isNotEmpty()) {
             Popup(
                 alignment = Alignment.TopCenter,
-                offset = IntOffset(0, -popupHeightPx),
+                offset = IntOffset(0, -popupHeightPx.toInt()),
                 onDismissRequest = { showLongPressOptions = false }
             ) {
                 Surface(
@@ -1396,7 +1396,7 @@ private fun KeyboardKeyButton(
                 ) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(optionColumns),
-                        modifier = Modifier.width(popupWidth).height(optionRows * 36.dp),
+                        modifier = Modifier.width(popupWidth).height((optionRows * 36).dp),
                         contentPadding = PaddingValues(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),

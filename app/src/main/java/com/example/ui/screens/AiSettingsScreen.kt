@@ -438,8 +438,19 @@ fun AiSettingsScreen(
                                     .testTag("ai_model_input")
                             )
 
-                            if (!keyIsOptional) FilledTonalButton(
+                            FilledTonalButton(
                                 onClick = {
+                                    when {
+                                        aiConfig.aiProvider == AiProviderType.GROKCLOUD -> {
+                                            modelInput = "grok-4.7"
+                                            aiSavedBanner = false
+                                        }
+                                        aiConfig.aiProvider == AiProviderType.EXAM1 ||
+                                            (aiConfig.aiProvider == AiProviderType.CUSTOM && keyIsOptional) -> {
+                                            modelInput = AiProviderType.EXAM1.defaultModel
+                                            aiSavedBanner = false
+                                        }
+                                    }
                                     onFetchAvailableModels(
                                         aiConfig.aiProvider,
                                         apiKeyInput,
@@ -464,6 +475,9 @@ fun AiSettingsScreen(
                         // Fetched Models Result OR Suggested Models Chips
                         if (fetchedModelsState is FetchedModelsState.Error) {
                             StatusFeedbackPill(isSuccess = false, text = fetchedModelsState.message)
+                        }
+                        if (fetchedModelsState is FetchedModelsState.Info) {
+                            StatusFeedbackPill(isSuccess = true, text = fetchedModelsState.message)
                         }
 
                         val displayModels = if (fetchedModels.isNotEmpty()) {

@@ -188,12 +188,18 @@ class SettingsRepository(private val context: Context) {
         val customId = prefs[Keys.ACTIVE_CUSTOM_ID]?.takeIf { it > 0L }
         val customName = prefs[Keys.ACTIVE_CUSTOM_NAME]
         val tProvider = TranslationProviderType.fromId(prefs[Keys.TRANSLATION_PROVIDER])
+        val savedModel = prefs[Keys.aiModelFor(provider.id)]?.trim().orEmpty()
+        val selectedModel = when (provider) {
+            AiProviderType.EXAM1 -> AiProviderType.EXAM1.defaultModel
+            AiProviderType.GROKCLOUD -> savedModel.takeIf { it.startsWith("grok-") } ?: AiProviderType.GROKCLOUD.defaultModel
+            else -> savedModel.ifBlank { provider.defaultModel }
+        }
         AiProviderConfig(
             aiProvider = provider,
             activeCustomProviderId = if (provider == AiProviderType.CUSTOM) customId else null,
             activeCustomProviderName = if (provider == AiProviderType.CUSTOM) customName else null,
             aiApiKey = prefs[Keys.aiKeyFor(provider.id)] ?: "",
-            aiModel = prefs[Keys.aiModelFor(provider.id)] ?: provider.defaultModel,
+            aiModel = selectedModel,
             aiCustomBaseUrl = prefs[Keys.AI_CUSTOM_BASE_URL] ?: AiProviderType.CUSTOM.defaultBaseUrl,
             translationProvider = tProvider,
             translationApiKey = prefs[Keys.TRANSLATION_API_KEY] ?: "",

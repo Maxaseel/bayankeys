@@ -173,7 +173,7 @@ class AiTranslationService {
         }
         return@withContext try {
             when (provider) {
-                AiProviderType.EXAM1 -> Result.success(provider.suggestedModels)
+                AiProviderType.EXAM1 -> Result.failure(IllegalStateException("exam1 لا يدعم جلب النماذج تلقائياً؛ سيُستخدم النموذج الافتراضي ${provider.defaultModel}."))
                 AiProviderType.GROKCLOUD -> Result.success(provider.suggestedModels)
                 AiProviderType.GEMINI -> fetchGeminiModels(cleanKey)
                 AiProviderType.ANTHROPIC -> fetchAnthropicModels(cleanKey)
@@ -182,7 +182,7 @@ class AiTranslationService {
                 AiProviderType.OPENROUTER,
                 AiProviderType.CUSTOM -> {
                     if (provider == AiProviderType.CUSTOM && provider.isApiKeyOptional(customBaseUrl)) {
-                        return@withContext Result.success(listOf("exam1"))
+                        return@withContext Result.failure(IllegalStateException("المزوّد المخصص api.live لا يدعم جلب النماذج تلقائياً؛ سيُستخدم النموذج الافتراضي ${AiProviderType.EXAM1.defaultModel}."))
                     }
                     val base = if (provider == AiProviderType.CUSTOM) {
                         customBaseUrl.trim().ifBlank { provider.defaultBaseUrl }
@@ -308,7 +308,8 @@ class AiTranslationService {
         userPrompt: String,
         config: AiProviderConfig
     ): Result<String> {
-        val apiKey = config.aiApiKey.trim()
+        val configuredKey = config.keyFor()
+        val apiKey = if (configuredKey == "no-key-needed") "" else configuredKey.trim()
         if (apiKey.isBlank() && !config.aiProvider.isApiKeyOptional(config.aiCustomBaseUrl)) {
             return Result.failure(IllegalStateException("Missing API Key for ${config.activeDisplayName}. Open Bayan Keys settings to add it."))
         }

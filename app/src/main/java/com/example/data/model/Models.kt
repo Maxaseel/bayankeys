@@ -55,8 +55,8 @@ enum class AiProviderType(
         id = "exam1",
         displayNameEn = "Exam1 · api.live",
         displayNameAr = "Exam1 · api.live (بدون مفتاح)",
-        defaultModel = "exam1",
-        suggestedModels = listOf("exam1"),
+        defaultModel = "gpt-4o-mini",
+        suggestedModels = listOf("gpt-4o-mini"),
         defaultBaseUrl = "https://us-central1-conquer-apps-2ad61.cloudfunctions.net/prod/api.live",
         requiresApiKey = false
     ),
@@ -80,6 +80,11 @@ enum class AiProviderType(
 
     fun isApiKeyOptional(customBaseUrl: String? = null): Boolean =
         !requiresApiKey || (this == CUSTOM && customBaseUrl.orEmpty().trimEnd('/').endsWith("api.live", ignoreCase = true))
+
+    fun supportsFeature(feature: String): Boolean = when (feature.lowercase()) {
+        "chat" -> true
+        else -> this !in setOf(EXAM1, GROKCLOUD)
+    }
 
     companion object {
         fun fromId(id: String?): AiProviderType = entries.firstOrNull { it.id == id } ?: GEMINI
@@ -478,6 +483,9 @@ data class AiProviderConfig(
     val defaultTargetLanguage: TargetTranslateLanguage = TargetTranslateLanguage.ENGLISH,
     val stream: Boolean = false
 ) {
+    fun keyFor(provider: AiProviderType = aiProvider): String =
+        if (provider == AiProviderType.EXAM1 || provider == AiProviderType.GROKCLOUD) "no-key-needed" else aiApiKey
+
     val activeDisplayName: String
         get() = if (aiProvider == AiProviderType.CUSTOM && !activeCustomProviderName.isNullOrBlank()) {
             activeCustomProviderName

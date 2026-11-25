@@ -60,6 +60,7 @@ sealed interface FetchedModelsState {
     data object Idle : FetchedModelsState
     data object Loading : FetchedModelsState
     data class Success(val models: List<String>) : FetchedModelsState
+    data class Info(val message: String) : FetchedModelsState
     data class Error(val message: String) : FetchedModelsState
 }
 
@@ -337,6 +338,22 @@ class BayanViewModel(
     }
 
     fun fetchModels(provider: AiProviderType, apiKey: String, customBaseUrl: String) {
+        val isArabic = appUiLanguage.value == "ar"
+        when {
+            provider == AiProviderType.GROKCLOUD -> {
+                _fetchedModelsState.value = FetchedModelsState.Success(provider.suggestedModels)
+                return
+            }
+            provider == AiProviderType.EXAM1 ||
+                (provider == AiProviderType.CUSTOM && provider.isApiKeyOptional(customBaseUrl)) -> {
+                val defaultModel = if (provider == AiProviderType.EXAM1) provider.defaultModel else AiProviderType.EXAM1.defaultModel
+                _fetchedModelsState.value = FetchedModelsState.Info(
+                    if (isArabic) "هذا المزوّد لا يدعم جلب قائمة النماذج تلقائيًا؛ سيُستخدم النموذج الافتراضي $defaultModel."
+                    else "This provider does not support automatic model listing; the default model $defaultModel will be used."
+                )
+                return
+            }
+        }
         _fetchedModelsState.value = FetchedModelsState.Loading
         viewModelScope.launch {
             val result = aiService.fetchAvailableModels(provider, apiKey, customBaseUrl)
