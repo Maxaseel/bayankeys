@@ -12,12 +12,20 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.Buffer
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 class AiTranslationService {
+
+    private companion object {
+        const val MAX_RESPONSE_BYTES = 1_048_576L
+        const val EXAM1_URL = "https://us-central1-conquer-apps-2ad61.cloudfunctions.net/prod/api.live"
+        const val GROKCLOUD_URL = "https://multimodelhandler-746036526161.us-central1.run.app"
+    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(25, TimeUnit.SECONDS)
@@ -138,11 +146,11 @@ class AiTranslationService {
 
     suspend fun testAiConnection(config: AiProviderConfig): Result<Pair<String, Long>> = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
-        val result = callAiProvider(
-            systemPrompt = "Reply briefly.",
-            userPrompt = "Reply with only: OK",
-            config = config
-        )
+        val result = when {
+            isExam1Config(config) -> testExam1Credential(resolveExam1Url(config))
+            config.aiProvider == AiProviderType.GROKCLOUD -> testGrokCloudCredential()
+            else -> callAiProvider("Reply briefly.", "Reply with only: OK", config)
+        }
         val elapsed = System.currentTimeMillis() - start
         result.map { it.trim() to elapsed }
     }
@@ -160,17 +168,22 @@ class AiTranslationService {
         customBaseUrl: String
     ): Result<List<String>> = withContext(Dispatchers.IO) {
         val cleanKey = apiKey.trim()
-        if (cleanKey.isBlank() && provider != AiProviderType.CUSTOM) {
+        if (cleanKey.isBlank() && !provider.isApiKeyOptional(customBaseUrl)) {
             return@withContext Result.failure(IllegalStateException("Enter an API key first to fetch available models."))
         }
         return@withContext try {
             when (provider) {
+                AiProviderType.EXAM1 -> Result.success(provider.suggestedModels)
+                AiProviderType.GROKCLOUD -> Result.success(provider.suggestedModels)
                 AiProviderType.GEMINI -> fetchGeminiModels(cleanKey)
                 AiProviderType.ANTHROPIC -> fetchAnthropicModels(cleanKey)
                 AiProviderType.OPENAI,
                 AiProviderType.GROQ,
                 AiProviderType.OPENROUTER,
                 AiProviderType.CUSTOM -> {
+                    if (provider == AiProviderType.CUSTOM && provider.isApiKeyOptional(customBaseUrl)) {
+                        return@withContext Result.success(listOf("exam1"))
+                    }
                     val base = if (provider == AiProviderType.CUSTOM) {
                         customBaseUrl.trim().ifBlank { provider.defaultBaseUrl }
                     } else {
@@ -296,13 +309,15 @@ class AiTranslationService {
         config: AiProviderConfig
     ): Result<String> {
         val apiKey = config.aiApiKey.trim()
-        if (apiKey.isBlank() && config.aiProvider != AiProviderType.CUSTOM) {
+        if (apiKey.isBlank() && !config.aiProvider.isApiKeyOptional(config.aiCustomBaseUrl)) {
             return Result.failure(IllegalStateException("Missing API Key for ${config.activeDisplayName}. Open Bayan Keys settings to add it."))
         }
         val model = config.aiModel.trim().ifBlank { config.aiProvider.defaultModel }
 
         return try {
             when (config.aiProvider) {
+                AiProviderType.EXAM1 -> callExam1(resolveExam1Url(config), userPrompt, config.stream)
+                AiProviderType.GROKCLOUD -> callGrokCloud(model, systemPrompt, userPrompt, config.stream)
                 AiProviderType.GEMINI -> callGemini(apiKey, model, systemPrompt, userPrompt)
                 AiProviderType.ANTHROPIC -> callAnthropic(apiKey, model, systemPrompt, userPrompt)
                 AiProviderType.OPENAI,
@@ -314,12 +329,155 @@ class AiTranslationService {
                     } else {
                         config.aiProvider.defaultBaseUrl
                     }
-                    callOpenAiCompatible(endpoint, apiKey, model, systemPrompt, userPrompt)
+                    if (config.aiProvider.isApiKeyOptional(endpoint)) callExam1(endpoint, userPrompt, config.stream)
+                    else callOpenAiCompatible(endpoint, apiKey, model, systemPrompt, userPrompt)
                 }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun isExam1Config(config: AiProviderConfig): Boolean =
+        config.aiProvider == AiProviderType.EXAM1 ||
+            (config.aiProvider == AiProviderType.CUSTOM && config.aiCustomBaseUrl.trimEnd('/').endsWith("api.live", ignoreCase = true))
+
+    private fun resolveExam1Url(config: AiProviderConfig): String =
+        if (config.aiProvider == AiProviderType.CUSTOM) config.aiCustomBaseUrl.trim() else EXAM1_URL
+
+    private fun callExam1(endpoint: String, prompt: String, stream: Boolean = false): Result<String> {
+        if (prompt.isBlank()) return Result.failure(IllegalArgumentException("قائمة الرسائل فارغة أو محتواها الأخير فارغ"))
+        return try {
+            val request = Request.Builder()
+                .url(endpoint)
+                .post(JSONObject().put("prompt", prompt).toString().toRequestBody(jsonMediaType))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val raw = readLimitedBody(response)
+                if (response.code !in 200..299) {
+                    return Result.failure(IllegalStateException("exam1 HTTP ${response.code}: ${extractErrorMessage(raw, response.code)}"))
+                }
+                val json = JSONObject(raw)
+                // Keep the api.live payload in the requested data envelope before adapting it
+                // to the keyboard's text-oriented result contract.
+                val wrapped = JSONObject().put("data", json)
+                val responsePayload = wrapped.optJSONObject("data") ?: json
+                val choices = responsePayload.optJSONArray("choices")
+                val text = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content").orEmpty().trim()
+                    .ifBlank { responsePayload.optString("content").trim() }
+                if (text.isBlank()) return Result.failure(IllegalStateException("exam1 أعاد نصاً فارغاً"))
+                Result.success(if (stream) toSse(text) else text)
+            }
+        } catch (e: Exception) {
+            Result.failure(IllegalStateException("تعذر الاتصال بخادم exam1: ${e.message ?: "خطأ غير معروف"}", e))
+        }
+    }
+
+    private fun testExam1Credential(endpoint: String): Result<String> {
+        return try {
+            val request = Request.Builder()
+                .url(endpoint)
+                .post(JSONObject().put("prompt", "Reply with OK only.").toString().toRequestBody(jsonMediaType))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val raw = readLimitedBody(response)
+                if (response.code !in 200..299) return Result.failure(IllegalStateException("exam1 HTTP ${response.code}: ${extractErrorMessage(raw, response.code)}"))
+                val json = JSONObject(raw)
+                val choices = json.optJSONArray("choices")
+                val content = json.optString("content").trim()
+                if ((choices?.length() ?: 0) > 0 || content.isNotBlank()) {
+                    val text = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content").orEmpty().trim().ifBlank { content }
+                    Result.success(text.ifBlank { "Connected" })
+                } else Result.failure(IllegalStateException("exam1 لم يُرجع choices أو content"))
+            }
+        } catch (e: Exception) {
+            Result.failure(IllegalStateException("فشل اختبار اتصال exam1: ${e.message ?: "خطأ غير معروف"}", e))
+        }
+    }
+
+    private fun callGrokCloud(model: String, systemPrompt: String, userPrompt: String, stream: Boolean = false): Result<String> {
+        if (userPrompt.isBlank()) return Result.failure(IllegalArgumentException("قائمة الرسائل فارغة أو محتواها الأخير فارغ"))
+        val selectedModel = model.takeIf { it.startsWith("grok-") } ?: "grok-4.7"
+        val history = JSONArray()
+            .put(JSONObject().put("role", "system").put("content", systemPrompt))
+            .put(JSONObject().put("role", "user").put("content", userPrompt))
+        val body = JSONObject().apply {
+            put("appName", "transcribe")
+            put("responseType", "json")
+            put("userQuery", userPrompt)
+            put("context", "You are a helpful assistant.")
+            put("maxTokens", 1024)
+            put("model", selectedModel)
+            put("osType", "android")
+            put("userId", "web_client")
+            put("deepThinking", false)
+            put("webSearch", false)
+            put("history", history)
+        }
+        return postGrokCloud(body, stream)
+    }
+
+    private fun testGrokCloudCredential(): Result<String> {
+        val body = JSONObject().apply {
+            put("appName", "transcribe")
+            put("responseType", "json")
+            put("userQuery", "Reply with exactly OK.")
+            put("context", "You are a helpful assistant.")
+            put("maxTokens", 256)
+            put("model", "grok-4.7")
+            put("osType", "android")
+            put("userId", "web_client")
+            put("deepThinking", false)
+            put("webSearch", false)
+        }
+        return postGrokCloud(body, stream = false)
+    }
+
+    private fun postGrokCloud(body: JSONObject, stream: Boolean): Result<String> {
+        return try {
+            val request = Request.Builder()
+                .url(GROKCLOUD_URL)
+                .post(body.toString().toRequestBody(jsonMediaType))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val raw = readLimitedBody(response)
+                if (response.code !in 200..299) {
+                    return Result.failure(IllegalStateException("grokcloud HTTP ${response.code}: ${extractErrorMessage(raw, response.code)}"))
+                }
+                val json = JSONObject(raw)
+                val text = json.optString("response").trim().ifBlank { json.optString("text").trim() }
+                if (text.isBlank()) return Result.failure(IllegalStateException("grokcloud أعاد نصاً فارغاً"))
+                val chatCompletion = JSONObject().put("choices", JSONArray().put(
+                    JSONObject().put("message", JSONObject().put("role", "assistant").put("content", text))
+                ))
+                val normalizedText = chatCompletion.optJSONArray("choices")!!.optJSONObject(0)!!
+                    .optJSONObject("message")!!.optString("content")
+                Result.success(if (stream) toSse(normalizedText) else normalizedText)
+            }
+        } catch (e: Exception) {
+            Result.failure(IllegalStateException("تعذر الاتصال بخادم grokcloud: ${e.message ?: "خطأ غير معروف"}", e))
+        }
+    }
+
+    private fun toSse(text: String): String = "data: $text\n\ndata: [DONE]\n\n"
+
+    private fun readLimitedBody(response: okhttp3.Response): String {
+        val body = response.body ?: return ""
+        if (body.contentLength() > MAX_RESPONSE_BYTES) throw IOException("حجم رد الخادم تجاوز الحد المسموح")
+        val buffer = Buffer()
+        body.source().use { source ->
+            while (true) {
+                val remaining = MAX_RESPONSE_BYTES + 1 - buffer.size
+                if (remaining <= 0L) throw IOException("حجم رد الخادم تجاوز الحد المسموح")
+                val read = source.read(buffer, minOf(8192L, remaining))
+                if (read == -1L) break
+            }
+        }
+        if (buffer.size > MAX_RESPONSE_BYTES) throw IOException("حجم رد الخادم تجاوز الحد المسموح")
+        return buffer.readUtf8()
     }
 
     private fun callGemini(

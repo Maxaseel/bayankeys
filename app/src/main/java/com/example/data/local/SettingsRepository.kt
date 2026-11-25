@@ -81,6 +81,7 @@ class SettingsRepository(private val context: Context) {
         val SPLIT_KEYBOARD = booleanPreferencesKey("split_keyboard")
         val INCOGNITO_MODE = booleanPreferencesKey("incognito_mode")
         val AUTO_CORRECT_ENABLED = booleanPreferencesKey("auto_correct_enabled")
+        val SHOW_SUGGESTIONS = booleanPreferencesKey("show_suggestions")
 
         // Languages
         val ENABLED_LANGUAGES = stringPreferencesKey("enabled_languages")
@@ -165,7 +166,8 @@ class SettingsRepository(private val context: Context) {
             oneHandedMode = OneHandedMode.fromId(prefs[Keys.ONE_HANDED_MODE]),
             splitKeyboard = prefs[Keys.SPLIT_KEYBOARD] ?: false,
             incognitoMode = prefs[Keys.INCOGNITO_MODE] ?: false,
-            autoCorrectEnabled = prefs[Keys.AUTO_CORRECT_ENABLED] ?: false
+            autoCorrectEnabled = prefs[Keys.AUTO_CORRECT_ENABLED] ?: false,
+            showSuggestions = prefs[Keys.SHOW_SUGGESTIONS] ?: true
         )
     }
 
@@ -301,6 +303,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SPLIT_KEYBOARD] = next.splitKeyboard
             prefs[Keys.INCOGNITO_MODE] = next.incognitoMode
             prefs[Keys.AUTO_CORRECT_ENABLED] = next.autoCorrectEnabled
+            prefs[Keys.SHOW_SUGGESTIONS] = next.showSuggestions
         }
     }
 

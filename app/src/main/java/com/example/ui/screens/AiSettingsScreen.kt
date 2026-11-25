@@ -115,6 +115,7 @@ fun AiSettingsScreen(
     var transTargetLang by remember { mutableStateOf(aiConfig.defaultTargetLanguage) }
     var showTransKey by remember { mutableStateOf(false) }
     var transSavedBanner by remember { mutableStateOf(false) }
+    val keyIsOptional = aiConfig.aiProvider.isApiKeyOptional(customBaseUrlInput)
 
     LaunchedEffect(
         aiConfig.aiProvider,
@@ -368,7 +369,13 @@ fun AiSettingsScreen(
                         }
 
                         // API Key Field
-                        OutlinedTextField(
+                        if (keyIsOptional) {
+                            Text(
+                                text = pick(isAr, "هذا الخادم لا يحتاج مفتاح API؛ سيُرسل الطلب بدون Authorization.", "This provider does not need an API key; requests are sent without Authorization."),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else OutlinedTextField(
                             value = apiKeyInput,
                             onValueChange = {
                                 apiKeyInput = it
@@ -418,6 +425,7 @@ fun AiSettingsScreen(
                         ) {
                             OutlinedTextField(
                                 value = modelInput,
+                                enabled = aiConfig.aiProvider != AiProviderType.EXAM1,
                                 onValueChange = {
                                     modelInput = it
                                     aiSavedBanner = false
@@ -430,7 +438,7 @@ fun AiSettingsScreen(
                                     .testTag("ai_model_input")
                             )
 
-                            FilledTonalButton(
+                            if (!keyIsOptional) FilledTonalButton(
                                 onClick = {
                                     onFetchAvailableModels(
                                         aiConfig.aiProvider,

@@ -91,6 +91,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -267,7 +269,7 @@ fun BayanKeyboardView(
         val suggestionStripHeight = if (isPreviewMode) 26.dp else 34.dp
         // Tool panels replace both the suggestion strip and key rows; match that full area
         // rather than forcing every panel into a fixed four-row frame.
-        val panelHeight = suggestionStripHeight +
+        val panelHeight = (if (sizeConfig.showSuggestions) suggestionStripHeight else 0.dp) +
             (keyHeight * keyboardRowCount) +
             (rowSpacing * (keyboardRowCount - 1))
         val keyFontSp = (if (isPreviewMode) 14f else 18f) * sizeConfig.fontScale
@@ -321,7 +323,7 @@ fun BayanKeyboardView(
                 )
 
             // 2. Suggestion Strip (RTL for Arabic, plus Auto-Dismissing Recent Copied Text chip)
-            if (state.panel == KeyboardPanel.KEYS) {
+            if (state.panel == KeyboardPanel.KEYS && sizeConfig.showSuggestions) {
                 SuggestionStrip(
                     activeLanguage = state.activeLanguage,
                     suggestions = state.suggestions,
@@ -1181,9 +1183,14 @@ private fun KeyboardKeyButton(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val keyHeightPx = with(density) { keyHeight.roundToPx() }
-    val popupWidthPx = with(density) { 280.dp.toPx() }
-    val optionWidthPx = with(density) { 24.dp.toPx() }
-    val popupHeightPx = with(density) { 52.dp.toPx() }
+    val optionColumns = if (spec.longPressChars.size > 8) 5 else spec.longPressChars.size.coerceAtLeast(1)
+    val optionRows = (spec.longPressChars.size + optionColumns - 1) / optionColumns
+    val popupWidth = (optionColumns * 38).dp
+    val popupHeight = (optionRows * 36 + 8).dp
+    val popupWidthPx = with(density) { popupWidth.toPx() }
+    val optionCellWidthPx = with(density) { 38.dp.toPx() }
+    val optionCellHeightPx = with(density) { 36.dp.toPx() }
+    val popupHeightPx = with(density) { popupHeight.toPx() }
     var showLongPressOptions by remember { mutableStateOf(false) }
     var selectedLongPressIndex by remember { mutableIntStateOf(-1) }
     var isPressed by remember { mutableStateOf(false) }
@@ -1265,10 +1272,13 @@ private fun KeyboardKeyButton(
                                     continue
                                 }
                                 val position = pointer.position
-                                val withinPopup = position.y >= keyHeightPx && position.y <= keyHeightPx + popupHeightPx
+                                val withinPopup = position.y <= 0f && position.y >= -popupHeightPx
                                 val optionX = position.x - popupStartX
-                                val index = if (withinPopup && optionX >= 0f) {
-                                    (optionX / optionWidthPx).toInt().coerceIn(0, spec.longPressChars.lastIndex)
+                                val index = if (withinPopup && optionX >= 0f && optionX < popupWidthPx) {
+                                    val column = (optionX / optionCellWidthPx).toInt().coerceIn(0, optionColumns - 1)
+                                    val row = ((position.y + popupHeightPx - with(density) { 4.dp.toPx() }) / optionCellHeightPx)
+                                        .toInt().coerceIn(0, optionRows - 1)
+                                    (row * optionColumns + column).takeIf { it in spec.longPressChars.indices } ?: -1
                                 } else -1
                                 selectedLongPressIndex = index
                                 pointer.consume()
@@ -1368,16 +1378,6 @@ private fun KeyboardKeyButton(
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
-                    if (spec.longPressChars.isNotEmpty() && !isPreviewMode) {
-                        Text(
-                            text = spec.longPressChars.first(),
-                            color = fgColor.copy(alpha = 0.4f),
-                            fontSize = 8.sp,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(end = 3.dp, top = 1.dp)
-                        )
-                    }
                 }
             }
         }
@@ -1386,7 +1386,7 @@ private fun KeyboardKeyButton(
         if (showLongPressOptions && spec.longPressChars.isNotEmpty()) {
             Popup(
                 alignment = Alignment.TopCenter,
-                offset = IntOffset(0, keyHeightPx),
+                offset = IntOffset(0, -popupHeightPx),
                 onDismissRequest = { showLongPressOptions = false }
             ) {
                 Surface(
@@ -1394,27 +1394,34 @@ private fun KeyboardKeyButton(
                     color = palette.accent,
                     shadowElevation = 6.dp
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(optionColumns),
+                        modifier = Modifier.width(popupWidth).height(optionRows * 36.dp),
+                        contentPadding = PaddingValues(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        userScrollEnabled = false
                     ) {
                         spec.longPressChars.forEachIndexed { index, variant ->
-                            Text(
-                                text = variant,
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (index == selectedLongPressIndex) Color.White.copy(alpha = 0.28f) else Color.Transparent)
-                                    .width(24.dp)
-                                    .padding(vertical = 5.dp),
-                                textAlign = TextAlign.Center
-                            )
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(7.dp))
+                                        .background(if (index == selectedLongPressIndex) Color.White.copy(alpha = 0.32f) else Color.Transparent),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = variant,
+                                        color = Color.White,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -2549,7 +2556,8 @@ private fun KeyboardProofreadDiffPanel(
                     color = palette.text,
                     fontSize = 14.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
                 )
             } else if (review.originalText.trim() == review.correctedText.trim()) {
                 Text(
@@ -2557,14 +2565,16 @@ private fun KeyboardProofreadDiffPanel(
                     color = Color(0xFF10B981),
                     fontSize = 14.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
                 )
             } else {
                 Text(
                     text = diffAnnotated,
                     fontSize = 14.sp,
                     fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
                 )
             }
         }

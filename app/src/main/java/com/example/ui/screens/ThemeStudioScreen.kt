@@ -515,6 +515,11 @@ fun ThemeStudioScreen(
                                 checked = sizeConfig.showNumberRow,
                                 onCheckedChange = { c -> onUpdateSizeConfig { it.copy(showNumberRow = c) } }
                             )
+                            SettingToggleRow(
+                                label = pick(isAr, "إظهار شريط الاقتراحات", "Show Suggestion Strip"),
+                                checked = sizeConfig.showSuggestions,
+                                onCheckedChange = { c -> onUpdateSizeConfig { it.copy(showSuggestions = c) } }
+                            )
                             if (sizeConfig.showNumberRow) {
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(

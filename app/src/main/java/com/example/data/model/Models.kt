@@ -8,7 +8,8 @@ enum class AiProviderType(
     val displayNameAr: String,
     val defaultModel: String,
     val suggestedModels: List<String>,
-    val defaultBaseUrl: String
+    val defaultBaseUrl: String,
+    val requiresApiKey: Boolean = true
 ) {
     GEMINI(
         id = "gemini",
@@ -50,6 +51,24 @@ enum class AiProviderType(
         suggestedModels = listOf("google/gemini-2.0-flash-001", "openai/gpt-4o-mini", "anthropic/claude-3.5-haiku"),
         defaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
     ),
+    EXAM1(
+        id = "exam1",
+        displayNameEn = "Exam1 · api.live",
+        displayNameAr = "Exam1 · api.live (بدون مفتاح)",
+        defaultModel = "exam1",
+        suggestedModels = listOf("exam1"),
+        defaultBaseUrl = "https://us-central1-conquer-apps-2ad61.cloudfunctions.net/prod/api.live",
+        requiresApiKey = false
+    ),
+    GROKCLOUD(
+        id = "grokcloud",
+        displayNameEn = "GrokCloud",
+        displayNameAr = "GrokCloud (بدون مفتاح)",
+        defaultModel = "grok-4.7",
+        suggestedModels = listOf("grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3"),
+        defaultBaseUrl = "https://multimodelhandler-746036526161.us-central1.run.app",
+        requiresApiKey = false
+    ),
     CUSTOM(
         id = "custom",
         displayNameEn = "Custom (OpenAI-Compatible)",
@@ -58,6 +77,9 @@ enum class AiProviderType(
         suggestedModels = listOf("deepseek-chat", "qwen-plus", "mistral-small-latest"),
         defaultBaseUrl = "https://api.deepseek.com/v1/chat/completions"
     );
+
+    fun isApiKeyOptional(customBaseUrl: String? = null): Boolean =
+        !requiresApiKey || (this == CUSTOM && customBaseUrl.orEmpty().trimEnd('/').endsWith("api.live", ignoreCase = true))
 
     companion object {
         fun fromId(id: String?): AiProviderType = entries.firstOrNull { it.id == id } ?: GEMINI
@@ -439,7 +461,8 @@ data class KeyboardSizeConfig(
     val oneHandedMode: OneHandedMode = OneHandedMode.OFF,
     val splitKeyboard: Boolean = false,
     val incognitoMode: Boolean = false,
-    val autoCorrectEnabled: Boolean = false
+    val autoCorrectEnabled: Boolean = false,
+    val showSuggestions: Boolean = true
 )
 
 data class AiProviderConfig(
@@ -452,7 +475,8 @@ data class AiProviderConfig(
     val translationProvider: TranslationProviderType = TranslationProviderType.USE_AI,
     val translationApiKey: String = "",
     val translationEndpoint: String = TranslationProviderType.GOOGLE_TRANSLATE.defaultEndpoint,
-    val defaultTargetLanguage: TargetTranslateLanguage = TargetTranslateLanguage.ENGLISH
+    val defaultTargetLanguage: TargetTranslateLanguage = TargetTranslateLanguage.ENGLISH,
+    val stream: Boolean = false
 ) {
     val activeDisplayName: String
         get() = if (aiProvider == AiProviderType.CUSTOM && !activeCustomProviderName.isNullOrBlank()) {
