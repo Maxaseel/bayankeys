@@ -25,8 +25,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -508,146 +510,180 @@ private fun PasswordEntryEditorDialog(
     var selectedBrand by remember(initial) { mutableStateOf(initial?.brand ?: PasswordServiceBrand.GOOGLE) }
     var localIconPath by remember(initial) { mutableStateOf(initial?.localIconPath) }
     var iconBusy by remember { mutableStateOf(false) }
+    var showGallery by remember { mutableStateOf(false) }
+    var showFolderName by remember { mutableStateOf(false) }
+    var folderName by remember { mutableStateOf("") }
+    var pendingUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var folders by remember { mutableStateOf<List<File>>(emptyList()) }
+    var openedFolder by remember { mutableStateOf<File?>(null) }
+    var galleryImages by remember { mutableStateOf<List<File>>(emptyList()) }
+    var iconError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val library = remember(context) { File(context.filesDir, "password_icon_library") }
+
+    fun refreshGallery(folder: File? = openedFolder) {
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                library.mkdirs()
+                val dirs = library.listFiles()?.filter { it.isDirectory }?.sortedBy { it.name.lowercase() }.orEmpty()
+                val images = folder?.listFiles()?.filter { it.isFile }?.sortedBy { it.name.lowercase() }.orEmpty()
+                dirs to images
+            }
+            folders = result.first
+            galleryImages = result.second
+        }
+    }
+    fun safeFolderName(raw: String): String = raw.trim()
+        .replace('/', '_')
+        .replace('\\', '_')
+        .trim('.', ' ')
+        .take(60)
+
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             iconBusy = true
+            iconError = null
             scope.launch {
-                localIconPath = withContext(Dispatchers.IO) {
+                val path = withContext(Dispatchers.IO) {
                     runCatching {
-                        val directory = File(context.filesDir, "password_icons").apply { mkdirs() }
+                        val directory = File(library, "My icons").apply { mkdirs() }
                         val destination = File(directory, "${UUID.randomUUID()}.img")
-                        context.contentResolver.openInputStream(uri)?.use { input ->
-                            destination.outputStream().use(input::copyTo)
-                        } ?: error("Unable to read image")
+                        context.contentResolver.openInputStream(uri)?.use { input -> destination.outputStream().use(input::copyTo) }
+                            ?: error("Unable to read image")
                         destination.absolutePath
                     }.getOrNull()
                 }
+                if (path != null) localIconPath = path
+                else iconError = if (isAr) "تعذر استيراد الصورة" else "Could not import image"
                 iconBusy = false
+                refreshGallery()
             }
+        }
+    }
+    val batchPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) {
+            pendingUris = uris
+            folderName = ""
+            showGallery = false
+            showFolderName = true
         }
     }
     var showPassword by remember { mutableStateOf(false) }
     var dialogToolbarRef by remember { mutableStateOf<androidx.compose.ui.platform.TextToolbar?>(null) }
 
-    AlertDialog(
-        onDismissRequest = {
-            dialogToolbarRef?.hide()
-            onDismiss()
+    if (showFolderName) AlertDialog(
+        onDismissRequest = { showFolderName = false; pendingUris = emptyList() },
+        title = { Text(pick(isAr, "اسم المجلد", "Folder name")) },
+        text = { OutlinedTextField(value = folderName, onValueChange = { folderName = it }, singleLine = true, label = { Text(pick(isAr, "اسم المجلد", "Folder name")) }) },
+        confirmButton = { TextButton(onClick = {
+            val name = safeFolderName(folderName)
+            if (name.isNotBlank()) {
+                val batch = pendingUris
+                showFolderName = false
+                pendingUris = emptyList()
+                iconBusy = true
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val directory = File(library, name).apply { mkdirs() }
+                            batch.mapIndexedNotNull { index, uri ->
+                                runCatching {
+                                    val dest = File(directory, "${System.currentTimeMillis()}_${index}_${UUID.randomUUID()}.img")
+                                    context.contentResolver.openInputStream(uri)?.use { input -> dest.outputStream().use(input::copyTo) } ?: error("Unreadable")
+                                    dest
+                                }.getOrNull()
+                            }
+                        }.getOrElse { emptyList() }
+                    }
+                    iconBusy = false
+                    if (result.isNotEmpty()) {
+                        openedFolder = File(library, name)
+                        refreshGallery(openedFolder)
+                        showGallery = true
+                    } else iconError = if (isAr) "تعذر استيراد الصور" else "Could not import images"
+                }
+            }
+        }) { Text(pick(isAr, "استيراد", "Import")) } },
+        dismissButton = { TextButton(onClick = { showFolderName = false; pendingUris = emptyList() }) { Text(pick(isAr, "إلغاء", "Cancel")) } }
+    )
+
+    if (showGallery) AlertDialog(
+        onDismissRequest = { showGallery = false },
+        title = { Text(openedFolder?.name ?: pick(isAr, "مكتبة الأيقونات", "Icon library")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (openedFolder == null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { batchPicker.launch(arrayOf("image/*")) }) { Text(pick(isAr, "استيراد عدة صور", "Import multiple")) }
+                    }
+                    LazyColumn(modifier = Modifier.height(260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(folders.size) { i ->
+                            val folder = folders[i]
+                            Surface(onClick = { openedFolder = folder; refreshGallery(folder) }, shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                                Text(folder.name, modifier = Modifier.fillMaxWidth().padding(12.dp))
+                            }
+                        }
+                        if (folders.isEmpty()) item { Text(pick(isAr, "لا توجد مجلدات بعد", "No folders yet")) }
+                    }
+                } else {
+                    TextButton(onClick = { openedFolder = null; refreshGallery(null) }) { Text(pick(isAr, "← المجلدات", "← Folders")) }
+                    LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.height(270.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(galleryImages) { file ->
+                            Surface(onClick = { localIconPath = file.absolutePath; showGallery = false }, shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                                ServiceBrandIcon(
+                                    brand = PasswordServiceBrand.CUSTOM,
+                                    localIconPath = file.absolutePath,
+                                    size = 76.dp,
+                                    modifier = Modifier.padding(4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         },
-        title = {
-            Text(
-                if (initial == null) pick(isAr, "إضافة كلمة مرور جديدة", "Add New Password")
-                else pick(isAr, "تعديل الحساب", "Edit Account")
-            )
-        },
+        confirmButton = { TextButton(onClick = { showGallery = false }) { Text(pick(isAr, "إغلاق", "Close")) } }
+    )
+
+    if (!showGallery && !showFolderName) AlertDialog(
+        onDismissRequest = { dialogToolbarRef?.hide(); onDismiss() },
+        title = { Text(if (initial == null) pick(isAr, "إضافة كلمة مرور جديدة", "Add New Password") else pick(isAr, "تعديل الحساب", "Edit Account")) },
         text = {
             ProvideSafeTextToolbar {
                 val dialogToolbar = LocalTextToolbar.current
                 dialogToolbarRef = dialogToolbar
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = pick(isAr, "أيقونة الموقع / التطبيق", "Site / App Icon"),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(pick(isAr, "أيقونة الموقع / التطبيق", "Site / App Icon"), style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ServiceBrandIcon(brand = selectedBrand, localIconPath = localIconPath, size = 42.dp)
-                        OutlinedButton(onClick = { dialogToolbar.hide(); imagePicker.launch(arrayOf("image/*")) }) {
-                            Text(pick(isAr, "اختيار صورة", "Choose image"))
-                        }
-                        if (localIconPath != null) TextButton(onClick = { localIconPath = null }) {
-                            Text(pick(isAr, "إزالة", "Remove"))
-                        }
+                        OutlinedButton(onClick = { dialogToolbar.hide(); imagePicker.launch(arrayOf("image/*")) }) { Text(pick(isAr, "اختيار صورة", "Choose image")) }
+                        OutlinedButton(onClick = { dialogToolbar.hide(); openedFolder = null; showGallery = true; refreshGallery(null) }) { Text(pick(isAr, "المكتبة", "Gallery")) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { batchPicker.launch(arrayOf("image/*")) }) { Text(pick(isAr, "استيراد عدة صور", "Import multiple")) }
+                        if (localIconPath != null) TextButton(onClick = { localIconPath = null }) { Text(pick(isAr, "إزالة", "Remove")) }
                         if (iconBusy) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+                    iconError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         PasswordServiceBrand.entries.forEach { brand ->
-                            FilterChip(
-                                selected = selectedBrand == brand,
-                                onClick = {
-                                    dialogToolbar.hide()
-                                    selectedBrand = brand
-                                    if (siteName.isBlank() && brand != PasswordServiceBrand.CUSTOM) {
-                                        siteName = brand.labelEn
-                                    }
-                                },
-                                leadingIcon = { ServiceBrandIcon(brand = brand, size = 18.dp) },
-                                label = { Text(if (isAr) brand.labelAr else brand.labelEn, style = MaterialTheme.typography.labelSmall) }
-                            )
+                            FilterChip(selected = selectedBrand == brand, onClick = {
+                                dialogToolbar.hide(); selectedBrand = brand
+                                if (siteName.isBlank() && brand != PasswordServiceBrand.CUSTOM) siteName = brand.labelEn
+                            }, leadingIcon = { ServiceBrandIcon(brand = brand, size = 18.dp) }, label = { Text(if (isAr) brand.labelAr else brand.labelEn, style = MaterialTheme.typography.labelSmall) })
                         }
                     }
-                    OutlinedTextField(
-                        value = siteName,
-                        onValueChange = {
-                            siteName = it
-                            if (initial == null) {
-                                val detected = PasswordServiceBrand.detectFrom(it, siteUrl)
-                                if (detected != PasswordServiceBrand.CUSTOM) selectedBrand = detected
-                            }
-                        },
-                        label = { Text(pick(isAr, "اسم الموقع أو الخدمة (مثال: Google, X)", "Site / App Name")) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("pw_site_input")
-                    )
-                    OutlinedTextField(
-                        value = siteUrl,
-                        onValueChange = { siteUrl = it },
-                        label = { Text(pick(isAr, "الرابط (اختياري)", "Website URL (optional)")) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text(pick(isAr, "اسم المستخدم أو البريد", "Username / Email")) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("pw_user_input")
-                    )
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text(pick(isAr, "كلمة المرور", "Password")) },
-                        singleLine = true,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                dialogToolbar.hide()
-                                showPassword = !showPassword
-                            }) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                    contentDescription = "Toggle password"
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().testTag("pw_secret_input")
-                    )
+                    OutlinedTextField(value = siteName, onValueChange = { siteName = it; if (initial == null) { val detected = PasswordServiceBrand.detectFrom(it, siteUrl); if (detected != PasswordServiceBrand.CUSTOM) selectedBrand = detected } }, label = { Text(pick(isAr, "اسم الموقع أو الخدمة (مثال: Google, X)", "Site / App Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("pw_site_input"))
+                    OutlinedTextField(value = siteUrl, onValueChange = { siteUrl = it }, label = { Text(pick(isAr, "الرابط (اختياري)", "Website URL (optional)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text(pick(isAr, "اسم المستخدم أو البريد", "Username / Email")) }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("pw_user_input"))
+                    OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text(pick(isAr, "كلمة المرور", "Password")) }, singleLine = true, visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                        IconButton(onClick = { dialogToolbar.hide(); showPassword = !showPassword }) { Icon(imageVector = if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility, contentDescription = "Toggle password") }
+                    }, modifier = Modifier.fillMaxWidth().testTag("pw_secret_input"))
                 }
             }
         },
-        confirmButton = {
-            Button(
-                onClick = {
-                    dialogToolbarRef?.hide()
-                    onSave(siteName, siteUrl, username, password, selectedBrand, localIconPath)
-                },
-                enabled = username.isNotBlank() && password.isNotBlank(),
-                modifier = Modifier.testTag("pw_save_button")
-            ) {
-                Text(pick(isAr, "حفظ", "Save"))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                dialogToolbarRef?.hide()
-                onDismiss()
-            }) {
-                Text(pick(isAr, "إلغاء", "Cancel"))
-            }
-        }
+        confirmButton = { Button(onClick = { dialogToolbarRef?.hide(); onSave(siteName, siteUrl, username, password, selectedBrand, localIconPath) }, enabled = username.isNotBlank() && password.isNotBlank() && !iconBusy, modifier = Modifier.testTag("pw_save_button")) { Text(pick(isAr, "حفظ", "Save")) } },
+        dismissButton = { TextButton(onClick = { dialogToolbarRef?.hide(); onDismiss() }) { Text(pick(isAr, "إلغاء", "Cancel")) } }
     )
 }
