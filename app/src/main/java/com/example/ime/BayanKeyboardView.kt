@@ -92,6 +92,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDirection
@@ -159,6 +161,7 @@ import com.example.ui.screens.botIconVector
 import com.example.ui.screens.builtinBotActionIcon
 import com.example.ui.theme.LocalBayanFontFamily
 import com.example.util.WordDiffUtil
+import com.example.util.DiffKind
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -2508,124 +2511,58 @@ private fun KeyboardProofreadDiffPanel(
     isBusy: Boolean,
     onClose: () -> Unit
 ) {
-    val diffAnnotated = remember(review.originalText, review.correctedText, palette.text) {
-        WordDiffUtil.buildDiffAnnotatedString(
-            original = review.originalText,
-            corrected = review.correctedText,
-            unchangedColor = palette.text
-        )
+    val correctedLine = remember(review.originalText, review.correctedText) {
+        buildAnnotatedString {
+            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText).forEach { segment ->
+                val color = if (segment.kind == DiffKind.CORRECTED_ADDED) Color(0xFF20B99B) else Color.White
+                pushStyle(SpanStyle(color = color))
+                append(segment.text)
+                pop()
+            }
+        }
     }
-
+    val originalLine = remember(review.originalText, review.correctedText) {
+        buildAnnotatedString {
+            append("الأصلي: ")
+            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText).forEach { segment ->
+                val color = if (segment.kind == DiffKind.WRONG_REMOVED) Color(0xFFEF5350) else Color.White
+                pushStyle(SpanStyle(color = color))
+                append(segment.text)
+                pop()
+            }
+        }
+    }
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Header + Color Legend
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        Spacer(Modifier.height(22.dp))
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                text = review.title,
-                color = palette.text,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = LocalBayanFontFamily.current,
-                modifier = Modifier.weight(1f)
-            )
-            // The same review panel is used for translations and proofreading.
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color(0xFFEF4444).copy(alpha = 0.18f)
-            ) {
-                Text(
-                    text = "قبل",
-                    color = Color(0xFFEF4444),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = LocalBayanFontFamily.current,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color(0xFF10B981).copy(alpha = 0.18f)
-            ) {
-                Text(
-                    text = "النتيجة",
-                    color = Color(0xFF10B981),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = LocalBayanFontFamily.current,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(palette.specialKey)
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close Diff",
-                    tint = palette.text,
-                    modifier = Modifier.size(15.dp)
-                )
-            }
-        }
-
-        // Scrollable Diff Preview Box
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(palette.key)
-                .border(1.dp, palette.text.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
-                .verticalScroll(rememberScrollState())
-                .padding(12.dp)
-        ) {
-            if (review.originalText.isBlank()) {
-                Text(
-                    text = review.correctedText,
-                    color = palette.text,
-                    fontSize = 14.sp,
-                    fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp,
-                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
-                )
-            } else if (review.originalText.trim() == review.correctedText.trim()) {
-                Text(
-                    text = "✓ لا توجد تغييرات:\n${review.correctedText}",
-                    color = Color(0xFF10B981),
-                    fontSize = 14.sp,
-                    fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp,
-                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
-                )
-            } else {
-                Text(
-                    text = diffAnnotated,
-                    fontSize = 14.sp,
-                    fontFamily = LocalBayanFontFamily.current,
-                    lineHeight = 22.sp,
-                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
-                )
-            }
-        }
-
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
+                text = correctedLine,
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                fontSize = 19.sp,
+                lineHeight = 29.sp,
+                fontFamily = LocalBayanFontFamily.current,
+                textAlign = TextAlign.End,
+                style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+            )
+            Text(
+                text = originalLine,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 19.sp,
+                lineHeight = 29.sp,
+                fontFamily = LocalBayanFontFamily.current,
+                textAlign = TextAlign.End,
+                style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = palette.accent.copy(alpha = if (review.isApplied || review.canRedo) 0.55f else 1f),
@@ -2656,7 +2593,6 @@ private fun KeyboardProofreadDiffPanel(
         }
     }
 }
-
 @Composable
 private fun ResultReportButton(palette: ResolvedKeyboardPalette) {
     Surface(
