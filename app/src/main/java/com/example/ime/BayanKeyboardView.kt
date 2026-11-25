@@ -328,7 +328,8 @@ fun BayanKeyboardView(
                         performHaptic()
                         onPanelChange(panel)
                     },
-                    onOpenSettings = onOpenSettings
+                    onOpenSettings = onOpenSettings,
+                    onCloseAiResult = onDismissProofreadDiff
                 )
 
             // 2. Suggestion Strip (RTL for Arabic, plus Auto-Dismissing Recent Copied Text chip)
@@ -738,7 +739,8 @@ private fun KeyboardToolbar(
     onToggleTranslateTarget: () -> Unit,
     onUndoAiClick: () -> Unit,
     onPanelChange: (KeyboardPanel) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onCloseAiResult: () -> Unit = {}
 ) {
     val visibleActions = remember(toolbarConfig) {
         toolbarConfig.order.filter { toolbarConfig.isVisible(it) }
@@ -762,6 +764,17 @@ private fun KeyboardToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
+            if (state.panel == KeyboardPanel.PROOFREAD_DIFF) {
+                val closeSize = if (isPreviewMode) 28.dp else 36.dp
+                Box(
+                    modifier = Modifier.size(closeSize).clip(CircleShape).background(palette.accent)
+                        .clickable(onClick = onCloseAiResult),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "إغلاق النتيجة", tint = Color.White,
+                        modifier = Modifier.size(if (isPreviewMode) 16.dp else 22.dp))
+                }
+            }
             visibleActions.forEach { action ->
                 when (action) {
                     ToolbarAction.PROOFREAD -> {
@@ -2514,23 +2527,27 @@ private fun KeyboardProofreadDiffPanel(
 ) {
     val correctedLine = remember(review.originalText, review.correctedText) {
         buildAnnotatedString {
-            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText).forEach { segment ->
-                val color = if (segment.kind == DiffKind.CORRECTED_ADDED) Color(0xFF20B99B) else Color.White
-                pushStyle(SpanStyle(color = color))
-                append(segment.text)
-                pop()
-            }
+            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText)
+                .filter { it.kind != DiffKind.WRONG_REMOVED }
+                .forEach { segment ->
+                    val color = if (segment.kind == DiffKind.CORRECTED_ADDED) Color(0xFF20B99B) else Color.White
+                    pushStyle(SpanStyle(color = color))
+                    append(segment.text)
+                    pop()
+                }
         }
     }
     val originalLine = remember(review.originalText, review.correctedText) {
         buildAnnotatedString {
             append("الأصلي: ")
-            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText).forEach { segment ->
-                val color = if (segment.kind == DiffKind.WRONG_REMOVED) Color(0xFFEF5350) else Color.White
-                pushStyle(SpanStyle(color = color))
-                append(segment.text)
-                pop()
-            }
+            WordDiffUtil.computeWordDiff(review.originalText, review.correctedText)
+                .filter { it.kind != DiffKind.CORRECTED_ADDED }
+                .forEach { segment ->
+                    val color = if (segment.kind == DiffKind.WRONG_REMOVED) Color(0xFFEF5350) else Color.White
+                    pushStyle(SpanStyle(color = color))
+                    append(segment.text)
+                    pop()
+                }
         }
     }
     Column(
@@ -2588,7 +2605,7 @@ private fun KeyboardProofreadDiffPanel(
                     fontFamily = LocalBayanFontFamily.current,
                     textAlign = if (targetIsRtl) TextAlign.End else TextAlign.Start,
                     style = TextStyle(
-                        textDirection = if (targetIsRtl) TextDirection.ContentOrRtl else TextDirection.ContentOrLtr
+                        textDirection = if (targetIsRtl) TextDirection.Rtl else TextDirection.Ltr
                     )
                 )
             } else {
@@ -2599,7 +2616,7 @@ private fun KeyboardProofreadDiffPanel(
                     lineHeight = 29.sp,
                     fontFamily = LocalBayanFontFamily.current,
                     textAlign = TextAlign.End,
-                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+                    style = TextStyle(textDirection = TextDirection.Rtl)
                 )
                 Text(
                     text = originalLine,
@@ -2608,7 +2625,7 @@ private fun KeyboardProofreadDiffPanel(
                     lineHeight = 29.sp,
                     fontFamily = LocalBayanFontFamily.current,
                     textAlign = TextAlign.End,
-                    style = TextStyle(textDirection = TextDirection.ContentOrRtl)
+                    style = TextStyle(textDirection = TextDirection.Rtl)
                 )
             }
         }
