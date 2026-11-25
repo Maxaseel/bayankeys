@@ -108,6 +108,9 @@ class BayanInputMethodService :
     private var aiSourceWasWholeField = true
     private var aiSourceSelectionStart = 0
     private var aiSourceSelectionEnd = 0
+    private var editUndoSnapshot: String? = null
+    private var editRedoSnapshot: String? = null
+    private var lastEditorPackage: String? = null
     private var lastSeenClipSignature: String? = null
     private var statusJob: Job? = null
     private var suggestionJob: Job? = null
@@ -261,6 +264,11 @@ class BayanInputMethodService :
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         stopGradualPaste()
+        if (lastEditorPackage != info?.packageName) {
+            editUndoSnapshot = null
+            editRedoSnapshot = null
+            lastEditorPackage = info?.packageName
+        }
         composingWord.clear()
         previousWord = null
         captureSystemClipboard()
@@ -305,6 +313,23 @@ class BayanInputMethodService :
         refreshSuggestions()
     }
 
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (composingWord.isNotEmpty() &&
+            (candidatesStart < 0 || newSelStart != candidatesEnd || newSelEnd != candidatesEnd)
+        ) {
+            currentInputConnection?.finishComposingText()
+            composingWord.clear()
+            refreshSuggestions()
+        }
+    }
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         stopVoiceListening()
@@ -361,6 +386,7 @@ class BayanInputMethodService :
 
     private fun handleTextInput(text: String) {
         val ic = currentInputConnection ?: return
+        recordEditorUndoSnapshot()
         // Once the user proceeds to type/input without tapping the recent copied chip, hide it from suggestions
         dismissRecentClipSuggestion()
 
@@ -402,6 +428,7 @@ class BayanInputMethodService :
 
     private fun handleBackspace() {
         val ic = currentInputConnection ?: return
+        recordEditorUndoSnapshot()
         dismissRecentClipSuggestion()
         if (composingWord.isNotEmpty()) {
             composingWord.deleteCharAt(composingWord.length - 1)
@@ -578,22 +605,13 @@ class BayanInputMethodService :
         ic.finishComposingText()
         composingWord.clear()
 
-        val selected = ic.getSelectedText(0)?.toString()
         val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
         val extracted = extractedSnapshot?.text?.toString()
-        val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
-        val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
+        val fullBefore = ic.getTextBeforeCursor(100_000, 0)?.toString().orEmpty()
+        val fullAfter = ic.getTextAfterCursor(100_000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
 
-        val targetText = if (!selected.isNullOrBlank()) {
-            selected
-        } else {
-            // Visually select the entire text in the field as requested!
-            if (allFieldText.isNotEmpty()) {
-                ic.setSelection(0, allFieldText.length)
-            }
-            allFieldText
-        }
+        val targetText = allFieldText
 
         if (targetText.isBlank()) {
             showTransientStatus(
@@ -604,16 +622,16 @@ class BayanInputMethodService :
             return
         }
 
-        val replaceWholeField = selected.isNullOrBlank()
-        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        val replaceWholeField = true
+        rememberAiUndoState(allFieldText, null, extractedSnapshot)
         retryCurrentAiOperation = { aiService.proofreadAndCorrect(targetText, aiConfig) }
 
         keyboardState.value = keyboardState.value.copy(
             isAiBusy = true,
             canUndoAi = false,
             statusMessage = if (keyboardState.value.activeLanguage == KeyboardLanguage.ARABIC)
-                "تم تحديد النص • جاري التصحيح بالذكاء الاصطناعي..."
-            else "Text selected • Proofreading with ${aiConfig.aiProvider.displayNameEn}...",
+                "جاري تصحيح النص الكامل بالذكاء الاصطناعي..."
+            else "Proofreading the full text with ${aiConfig.aiProvider.displayNameEn}...",
             isErrorStatus = false
         )
 
@@ -772,16 +790,15 @@ class BayanInputMethodService :
         composingWord.clear()
         ic?.finishComposingText()
 
-        val selected = ic?.getSelectedText(0)?.toString()
         val extractedSnapshot = ic?.getExtractedText(ExtractedTextRequest(), 0)
         val extracted = extractedSnapshot?.text?.toString()
-        val fullBefore = ic?.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
-        val fullAfter = ic?.getTextAfterCursor(5000, 0)?.toString().orEmpty()
+        val fullBefore = ic?.getTextBeforeCursor(100_000, 0)?.toString().orEmpty()
+        val fullAfter = ic?.getTextAfterCursor(100_000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
 
-        val targetText = if (!selected.isNullOrBlank()) selected else allFieldText
-        val replaceWholeField = selected.isNullOrBlank()
-        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        val targetText = allFieldText
+        val replaceWholeField = true
+        rememberAiUndoState(allFieldText, null, extractedSnapshot)
         retryCurrentAiOperation = { aiService.runCustomBot(targetText, bot, aiConfig) }
 
         keyboardState.value = keyboardState.value.copy(
@@ -830,21 +847,20 @@ class BayanInputMethodService :
         composingWord.clear()
         ic.finishComposingText()
 
-        val selected = ic.getSelectedText(0)?.toString()
         val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
         val extracted = extractedSnapshot?.text?.toString()
-        val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
-        val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
+        val fullBefore = ic.getTextBeforeCursor(100_000, 0)?.toString().orEmpty()
+        val fullAfter = ic.getTextAfterCursor(100_000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
 
-        val targetText = if (!selected.isNullOrBlank()) selected else allFieldText
+        val targetText = allFieldText
         if (targetText.isBlank()) {
             showTransientStatus("اكتب نصاً أولاً لتنفيذ «${action.labelAr}»", isError = true)
             return
         }
 
-        val replaceWholeField = selected.isNullOrBlank()
-        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        val replaceWholeField = true
+        rememberAiUndoState(allFieldText, null, extractedSnapshot)
         val targetLang = keyboardState.value.targetTranslateLang
         retryCurrentAiOperation = {
             aiService.runQuickBotAction(
@@ -1012,21 +1028,13 @@ class BayanInputMethodService :
         ic.finishComposingText()
         composingWord.clear()
 
-        val selected = ic.getSelectedText(0)?.toString()
         val extractedSnapshot = ic.getExtractedText(ExtractedTextRequest(), 0)
         val extracted = extractedSnapshot?.text?.toString()
-        val fullBefore = ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()
-        val fullAfter = ic.getTextAfterCursor(5000, 0)?.toString().orEmpty()
+        val fullBefore = ic.getTextBeforeCursor(100_000, 0)?.toString().orEmpty()
+        val fullAfter = ic.getTextAfterCursor(100_000, 0)?.toString().orEmpty()
         val allFieldText = extracted ?: (fullBefore + fullAfter)
 
-        val targetText = if (!selected.isNullOrBlank()) {
-            selected
-        } else {
-            if (allFieldText.isNotEmpty()) {
-                ic.setSelection(0, allFieldText.length)
-            }
-            allFieldText
-        }
+        val targetText = allFieldText
 
         if (targetText.isBlank()) {
             showTransientStatus(
@@ -1037,8 +1045,8 @@ class BayanInputMethodService :
             return
         }
 
-        val replaceWholeField = selected.isNullOrBlank()
-        rememberAiUndoState(allFieldText, selected, extractedSnapshot)
+        val replaceWholeField = true
+        rememberAiUndoState(allFieldText, null, extractedSnapshot)
         val targetLang = keyboardState.value.targetTranslateLang
         retryCurrentAiOperation = { aiService.translateText(targetText, targetLang, aiConfig) }
 
@@ -1100,11 +1108,21 @@ class BayanInputMethodService :
         )
     }
 
+    private fun readEditorText(): String? {
+        val ic = currentInputConnection ?: return null
+        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
+        return extracted ?: (ic.getTextBeforeCursor(100_000, 0)?.toString().orEmpty() +
+            ic.getTextAfterCursor(100_000, 0)?.toString().orEmpty())
+    }
+    private fun recordEditorUndoSnapshot() {
+        editUndoSnapshot = readEditorText()
+        editRedoSnapshot = null
+    }
     private fun getCurrentEditorText(): String? {
         val ic = currentInputConnection ?: return null
         val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)?.text?.toString()
-        return extracted ?: (ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty() +
-            ic.getTextAfterCursor(5000, 0)?.toString().orEmpty())
+        return extracted ?: (ic.getTextBeforeCursor(100_000, 0)?.toString().orEmpty() +
+            ic.getTextAfterCursor(100_000, 0)?.toString().orEmpty())
     }
 
     private fun rememberAiUndoState(
@@ -1140,13 +1158,20 @@ class BayanInputMethodService :
         ic.beginBatchEdit()
         if (replaceWholeField) {
             val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
-            val currentLen = extracted?.text?.length
-                ?: ((ic.getTextBeforeCursor(5000, 0)?.length ?: 0) + (ic.getTextAfterCursor(5000, 0)?.length ?: 0))
-            val alreadyAllSelected = extracted != null &&
-                ((extracted.selectionStart == 0 && extracted.selectionEnd == currentLen) ||
-                    (extracted.selectionEnd == 0 && extracted.selectionStart == currentLen))
-            if (!alreadyAllSelected) {
-                ic.setSelection(0, currentLen)
+            val textLength = extracted?.text?.length
+            if (extracted != null && textLength != null) {
+                val start = extracted.startOffset.coerceAtLeast(0)
+                val end = start + textLength
+                val alreadyAllSelected =
+                    (extracted.selectionStart == start && extracted.selectionEnd == end) ||
+                        (extracted.selectionEnd == start && extracted.selectionStart == end)
+                if (!alreadyAllSelected) ic.setSelection(start, end)
+            } else {
+                // Ask the editor to select all when no reliable absolute text window is available.
+                if (!ic.performContextMenuAction(android.R.id.selectAll)) {
+                    ic.endBatchEdit()
+                    return
+                }
             }
         }
         ic.commitText(newText, 1)
@@ -1157,10 +1182,10 @@ class BayanInputMethodService :
         ic.beginBatchEdit()
         if (replaceWholeField) {
             val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
-            val currentLen = extracted?.text?.length
-                ?: ((ic.getTextBeforeCursor(5000, 0)?.length ?: 0) + (ic.getTextAfterCursor(5000, 0)?.length ?: 0))
-            if (currentLen > 0) {
-                ic.setSelection(0, currentLen)
+            val length = extracted?.text?.length ?: 0
+            if (length > 0) {
+                val start = extracted?.startOffset?.coerceAtLeast(0) ?: 0
+                ic.setSelection(start, start + length)
                 ic.commitText("", 1)
             }
         } else {
@@ -1366,13 +1391,29 @@ class BayanInputMethodService :
                 }
             }
             QuickInputTool.UNDO -> {
-                if (ic != null && !ic.performContextMenuAction(android.R.id.undo)) {
-                    sendModifiedKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON)
+                if (ic != null) {
+                    val previous = editUndoSnapshot
+                    if (previous != null) {
+                        editRedoSnapshot = readEditorText()
+                        replaceTextInEditor(previous, replaceWholeField = true)
+                        editUndoSnapshot = null
+                        composingWord.clear()
+                    } else if (!ic.performContextMenuAction(android.R.id.undo)) {
+                        sendModifiedKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON)
+                    }
                 }
             }
             QuickInputTool.REDO -> {
-                if (ic != null && !ic.performContextMenuAction(android.R.id.redo)) {
-                    sendModifiedKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON)
+                if (ic != null) {
+                    val next = editRedoSnapshot
+                    if (next != null) {
+                        editUndoSnapshot = readEditorText()
+                        replaceTextInEditor(next, replaceWholeField = true)
+                        editRedoSnapshot = null
+                        composingWord.clear()
+                    } else if (!ic.performContextMenuAction(android.R.id.redo)) {
+                        sendModifiedKey(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON)
+                    }
                 }
             }
             QuickInputTool.CLEAR_CLIPBOARD -> {
@@ -1395,17 +1436,18 @@ class BayanInputMethodService :
             QuickInputTool.PAGE_UP -> sendDownUpKeyEvents(KeyEvent.KEYCODE_PAGE_UP)
             QuickInputTool.PAGE_DOWN -> sendDownUpKeyEvents(KeyEvent.KEYCODE_PAGE_DOWN)
             QuickInputTool.DOC_START -> {
-                val handled = ic?.getExtractedText(ExtractedTextRequest(), 0) != null
-                if (handled) {
+                val extracted = ic?.getExtractedText(ExtractedTextRequest(), 0)
+                if (extracted != null) {
                     ic.setSelection(0, 0)
                 } else {
                     sendModifiedKey(KeyEvent.KEYCODE_MOVE_HOME, KeyEvent.META_CTRL_ON)
                 }
             }
             QuickInputTool.DOC_END -> {
-                val extracted = ic?.getExtractedText(ExtractedTextRequest(), 0)?.text
+                val extracted = ic?.getExtractedText(ExtractedTextRequest(), 0)
                 if (extracted != null) {
-                    ic.setSelection(extracted.length, extracted.length)
+                    val end = extracted.startOffset + (extracted.text?.length ?: 0)
+                    ic.setSelection(end, end)
                 } else {
                     sendModifiedKey(KeyEvent.KEYCODE_MOVE_END, KeyEvent.META_CTRL_ON)
                 }

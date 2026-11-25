@@ -53,6 +53,9 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Language
@@ -85,6 +88,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -242,6 +246,8 @@ fun BayanKeyboardView(
     onOpenSettings: () -> Unit
 ) {
     val palette = themeConfig.resolvePalette(isSystemInDarkTheme())
+    val appLanguage = LocalConfiguration.current.locales[0]?.language.orEmpty()
+    val isArabicUi = appLanguage.equals("ar", ignoreCase = true)
     val haptic = LocalHapticFeedback.current
     val performHaptic = {
         if (sizeConfig.hapticFeedback) {
@@ -494,6 +500,9 @@ fun BayanKeyboardView(
                 }
 
                 KeyboardPanel.CLIPBOARD -> {
+                    CompositionLocalProvider(
+                        LocalLayoutDirection provides if (isArabicUi) LayoutDirection.Rtl else LayoutDirection.Ltr
+                    ) {
                     KeyboardClipboardPanel(
                         items = clipboardItems,
                         gradualEnabled = gradualPasteConfig.enabled,
@@ -517,6 +526,7 @@ fun BayanKeyboardView(
                         },
                         onClose = { onPanelChange(KeyboardPanel.KEYS) }
                     )
+                    }
                 }
 
                 KeyboardPanel.QUICK_TOOLS -> {
@@ -599,6 +609,9 @@ fun BayanKeyboardView(
                 KeyboardPanel.PROOFREAD_DIFF -> {
                     val review = state.proofreadReview
                     if (review != null) {
+                        CompositionLocalProvider(
+                            LocalLayoutDirection provides if (isArabicUi) LayoutDirection.Rtl else LayoutDirection.Ltr
+                        ) {
                         KeyboardProofreadDiffPanel(
                             review = review,
                             palette = palette,
@@ -635,6 +648,7 @@ fun BayanKeyboardView(
                                 onDismissProofreadDiff()
                             }
                         )
+                        }
                     } else {
                         onPanelChange(KeyboardPanel.KEYS)
                     }
@@ -2608,154 +2622,54 @@ private fun KeyboardProofreadDiffPanel(
             }
         }
 
-        // Bottom Action Buttons: Copy & Apply (Tap = instant replace, Long Press = gradual paste)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                onClick = onCopy,
-                shape = RoundedCornerShape(10.dp),
-                color = palette.specialKey,
-                contentColor = palette.text,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(42.dp)
-                    .minimumInteractiveComponentSize()
-                    .testTag("proofread_copy_button")
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "نسخ",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = LocalBayanFontFamily.current
-                    )
-                }
-            }
-
-            Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(22.dp),
                 color = palette.accent.copy(alpha = if (review.isApplied || review.canRedo) 0.55f else 1f),
                 contentColor = Color.White,
-                modifier = Modifier
-                    .weight(1.25f)
-                    .height(42.dp)
-                    .minimumInteractiveComponentSize()
-                    .clip(RoundedCornerShape(10.dp))
+                modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(22.dp))
                     .combinedClickable(
                         onClick = { if (!review.isApplied && !review.canRedo) onApply() },
                         onLongClick = { if (!review.isApplied && !review.canRedo) onApplyGradually() }
-                    )
-                    .testTag("proofread_apply_button")
+                    ).testTag("proofread_apply_button")
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(Icons.Rounded.Check, contentDescription = "Apply", modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        text = when {
-                            review.isApplied -> "تم التطبيق"
-                            review.canRedo -> "اضغط إعادة"
-                            else -> "تطبيق"
-                        },
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = LocalBayanFontFamily.current
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color.White.copy(alpha = 0.2f),
-                        contentColor = Color.White
-                    ) {
-                        Text(
-                            text = "⚡ مطوّل",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = LocalBayanFontFamily.current,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                        )
-                    }
+                Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center) {
+                    Text(if (review.isApplied) "تم التطبيق" else if (review.canRedo) "اضغط إعادة" else "تطبيق",
+                        fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current)
+                    Spacer(Modifier.width(7.dp))
+                    Icon(Icons.Rounded.Check, contentDescription = "تطبيق", modifier = Modifier.size(20.dp))
                 }
             }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            ReviewActionButton(
-                text = "تراجع",
-                enabled = review.isApplied,
-                palette = palette,
-                modifier = Modifier.weight(1f),
-                onClick = onUndoApplied
-            )
-            ReviewActionButton(
-                text = "إعادة",
-                enabled = review.canRedo,
-                palette = palette,
-                modifier = Modifier.weight(1f),
-                onClick = onRedoApplied
-            )
-            ReviewActionButton(
-                text = if (isBusy) "جارٍ الإنشاء…" else "إعادة الإنشاء",
-                enabled = !isBusy,
-                palette = palette,
-                emphasized = true,
-                modifier = Modifier.weight(1.4f),
-                onClick = onRegenerate
-            )
+            ResultIconButton(Icons.Rounded.Flag, "الإبلاغ", palette) { }
+            ResultIconButton(Icons.Rounded.ArrowForward, "إعادة", palette, enabled = review.canRedo, onClick = onRedoApplied)
+            ResultIconButton(Icons.AutoMirrored.Rounded.Undo, "تراجع", palette, enabled = review.isApplied, onClick = onUndoApplied)
+            ResultIconButton(Icons.Rounded.ContentCopy, "نسخ", palette, onClick = onCopy)
+            ResultIconButton(Icons.Rounded.Refresh, "إعادة الإنشاء", palette, enabled = !isBusy, onClick = onRegenerate)
         }
     }
 }
 
 @Composable
-private fun ReviewActionButton(
-    text: String,
-    enabled: Boolean,
+private fun ResultIconButton(
+    icon: ImageVector,
+    description: String,
     palette: ResolvedKeyboardPalette,
-    modifier: Modifier = Modifier,
-    emphasized: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(9.dp),
-        color = if (emphasized) palette.accent.copy(alpha = if (enabled) 1f else 0.45f)
-        else palette.specialKey.copy(alpha = if (enabled) 1f else 0.55f),
-        contentColor = if (emphasized) Color.White else palette.text,
-        modifier = modifier
-            .height(36.dp)
-            .minimumInteractiveComponentSize()
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = text,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = LocalBayanFontFamily.current,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+    Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
+        color = palette.accent.copy(alpha = if (enabled) 1f else 0.45f),
+        contentColor = Color.White, modifier = Modifier.size(38.dp).testTag("result_${description}")) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = description, modifier = Modifier.size(21.dp))
         }
     }
 }
-
 @Composable
 private fun OneHandedSideStrip(
     currentMode: OneHandedMode,
