@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -1176,8 +1178,13 @@ private fun KeyboardKeyButton(
     onSpaceSwipe: (Int) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val keyHeightPx = with(LocalDensity.current) { keyHeight.roundToPx() }
+    val density = LocalDensity.current
+    val keyHeightPx = with(density) { keyHeight.roundToPx() }
+    val popupWidthPx = with(density) { 280.dp.toPx() }
+    val optionWidthPx = with(density) { 24.dp.toPx() }
+    val popupHeightPx = with(density) { 52.dp.toPx() }
     var showLongPressOptions by remember { mutableStateOf(false) }
+    var selectedLongPressIndex by remember { mutableIntStateOf(-1) }
     var isPressed by remember { mutableStateOf(false) }
 
     val noBg = palette.keyShape == KeyButtonShape.NO_BACKGROUND
@@ -1237,32 +1244,80 @@ private fun KeyboardKeyButton(
                 }
             }
             .pointerInput(spec, isShifted, isCapsLocked) {
-                detectTapGestures(
-                    onPress = {
+                if (spec.longPressChars.isNotEmpty() && !isPreviewMode) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        down.consume()
                         isPressed = true
-                        var repeatJob: kotlinx.coroutines.Job? = null
-                        if (spec.kind == KeyKind.BACKSPACE) {
-                            repeatJob = scope.launch {
-                                delay(380)
-                                while (true) {
-                                    onBackspaceRepeat()
-                                    delay(65)
+                        var releasedBeforeLongPress = false
+                        val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                        val completedBeforeTimeout = kotlinx.coroutines.withTimeoutOrNull(longPressTimeout) {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pointer = event.changes.firstOrNull { it.id == down.id }
+                                if (pointer == null || !pointer.pressed) {
+                                    releasedBeforeLongPress = true
+                                    return@withTimeoutOrNull true
                                 }
+                                pointer.consume()
                             }
+                            false
                         }
-                        val released = tryAwaitRelease()
-                        repeatJob?.cancel()
-                        isPressed = false
-                        if (released && !showLongPressOptions) {
-                            onTap()
-                        }
-                    },
-                    onLongPress = {
-                        if (spec.longPressChars.isNotEmpty()) {
+
+                        if (completedBeforeTimeout == null && !releasedBeforeLongPress) {
                             showLongPressOptions = true
+                            selectedLongPressIndex = -1
+                            val popupStartX = (size.width - popupWidthPx) / 2f
+                            var released = false
+                            while (!released) {
+                                val event = awaitPointerEvent()
+                                val pointer = event.changes.firstOrNull { it.id == down.id }
+                                if (pointer == null || !pointer.pressed) {
+                                    released = true
+                                    continue
+                                }
+                                val position = pointer.position
+                                val withinPopup = position.y >= keyHeightPx && position.y <= keyHeightPx + popupHeightPx
+                                val optionX = position.x - popupStartX
+                                val index = if (withinPopup && optionX >= 0f) {
+                                    (optionX / optionWidthPx).toInt().coerceIn(0, spec.longPressChars.lastIndex)
+                                } else -1
+                                selectedLongPressIndex = index
+                                pointer.consume()
+                            }
+                            val selected = selectedLongPressIndex
+                            showLongPressOptions = false
+                            selectedLongPressIndex = -1
+                            isPressed = false
+                            if (selected in spec.longPressChars.indices) {
+                                onLongPressChar(spec.longPressChars[selected])
+                            }
+                        } else {
+                            isPressed = false
+                            if (releasedBeforeLongPress) onTap()
                         }
                     }
-                )
+                } else {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            var repeatJob: kotlinx.coroutines.Job? = null
+                            if (spec.kind == KeyKind.BACKSPACE) {
+                                repeatJob = scope.launch {
+                                    delay(380)
+                                    while (true) {
+                                        onBackspaceRepeat()
+                                        delay(65)
+                                    }
+                                }
+                            }
+                            val released = tryAwaitRelease()
+                            repeatJob?.cancel()
+                            isPressed = false
+                            if (released) onTap()
+                        }
+                    )
+                }
             },
         contentAlignment = Alignment.Center
     ) {
@@ -1355,9 +1410,9 @@ private fun KeyboardKeyButton(
                             .widthIn(max = 280.dp)
                             .horizontalScroll(rememberScrollState())
                             .padding(horizontal = 4.dp, vertical = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        spec.longPressChars.forEach { variant ->
+                        spec.longPressChars.forEachIndexed { index, variant ->
                             Text(
                                 text = variant,
                                 color = Color.White,
@@ -1366,11 +1421,10 @@ private fun KeyboardKeyButton(
                                 maxLines = 1,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .clickable {
-                                        onLongPressChar(variant)
-                                        showLongPressOptions = false
-                                    }
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .background(if (index == selectedLongPressIndex) Color.White.copy(alpha = 0.28f) else Color.Transparent)
+                                    .width(24.dp)
+                                    .padding(vertical = 5.dp),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
