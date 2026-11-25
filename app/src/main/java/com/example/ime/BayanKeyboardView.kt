@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -1249,22 +1250,9 @@ private fun KeyboardKeyButton(
                         val down = awaitFirstDown()
                         down.consume()
                         isPressed = true
-                        var releasedBeforeLongPress = false
-                        val longPressTimeout = viewConfiguration.longPressTimeoutMillis
-                        val completedBeforeTimeout = kotlinx.coroutines.withTimeoutOrNull(longPressTimeout) {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val pointer = event.changes.firstOrNull { it.id == down.id }
-                                if (pointer == null || !pointer.pressed) {
-                                    releasedBeforeLongPress = true
-                                    return@withTimeoutOrNull true
-                                }
-                                pointer.consume()
-                            }
-                            false
-                        }
+                        val longPressChange = awaitLongPressOrCancellation(down.id)
 
-                        if (completedBeforeTimeout == null && !releasedBeforeLongPress) {
+                        if (longPressChange != null) {
                             showLongPressOptions = true
                             selectedLongPressIndex = -1
                             val popupStartX = (size.width - popupWidthPx) / 2f
@@ -1294,7 +1282,8 @@ private fun KeyboardKeyButton(
                             }
                         } else {
                             isPressed = false
-                            if (releasedBeforeLongPress) onTap()
+                            val pointerReleased = currentEvent.changes.any { it.id == down.id && !it.pressed }
+                            if (pointerReleased) onTap()
                         }
                     }
                 } else {
