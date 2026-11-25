@@ -55,7 +55,6 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.EmojiEmotions
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Language
@@ -2622,34 +2621,56 @@ private fun KeyboardProofreadDiffPanel(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(22.dp),
-                color = palette.accent.copy(alpha = if (review.isApplied || review.canRedo) 0.55f else 1f),
-                contentColor = Color.White,
-                modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(22.dp))
-                    .combinedClickable(
-                        onClick = { if (!review.isApplied && !review.canRedo) onApply() },
-                        onLongClick = { if (!review.isApplied && !review.canRedo) onApplyGradually() }
-                    ).testTag("proofread_apply_button")
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center) {
-                    Text(if (review.isApplied) "تم التطبيق" else if (review.canRedo) "اضغط إعادة" else "تطبيق",
-                        fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current)
-                    Spacer(Modifier.width(7.dp))
-                    Icon(Icons.Rounded.Check, contentDescription = "تطبيق", modifier = Modifier.size(20.dp))
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = palette.accent.copy(alpha = if (review.isApplied || review.canRedo) 0.55f else 1f),
+                    contentColor = Color.White,
+                    modifier = Modifier.width(96.dp).height(44.dp).clip(RoundedCornerShape(24.dp))
+                        .combinedClickable(
+                            onClick = { if (!review.isApplied && !review.canRedo) onApply() },
+                            onLongClick = { if (!review.isApplied && !review.canRedo) onApplyGradually() }
+                        ).testTag("proofread_apply_button")
+                ) {
+                    Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center) {
+                        Text(if (review.isApplied) "تم التطبيق" else if (review.canRedo) "اضغط إعادة" else "تطبيق",
+                            fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current)
+                        Spacer(Modifier.width(6.dp))
+                        Icon(Icons.Rounded.Check, contentDescription = "تطبيق", modifier = Modifier.size(20.dp))
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    ResultReportButton(palette)
+                    ResultIconButton(Icons.AutoMirrored.Rounded.Redo, "إعادة", palette, enabled = review.canRedo, onClick = onRedoApplied)
+                    ResultIconButton(Icons.AutoMirrored.Rounded.Undo, "تراجع", palette, enabled = review.isApplied, onClick = onUndoApplied)
+                    ResultIconButton(Icons.Rounded.ContentCopy, "نسخ", palette, onClick = onCopy)
+                    ResultIconButton(Icons.Rounded.Refresh, "تحديث", palette, enabled = !isBusy, onClick = onRegenerate)
                 }
             }
-            ResultIconButton(Icons.Rounded.Flag, "الإبلاغ", palette) { }
-            ResultIconButton(Icons.Rounded.ArrowForward, "إعادة", palette, enabled = review.canRedo, onClick = onRedoApplied)
-            ResultIconButton(Icons.AutoMirrored.Rounded.Undo, "تراجع", palette, enabled = review.isApplied, onClick = onUndoApplied)
-            ResultIconButton(Icons.Rounded.ContentCopy, "نسخ", palette, onClick = onCopy)
-            ResultIconButton(Icons.Rounded.Refresh, "إعادة الإنشاء", palette, enabled = !isBusy, onClick = onRegenerate)
+        }
+    }
+}
+
+@Composable
+private fun ResultReportButton(palette: ResolvedKeyboardPalette) {
+    Surface(
+        onClick = { },
+        shape = CircleShape,
+        color = palette.accent,
+        contentColor = Color.White,
+        modifier = Modifier.width(64.dp).height(36.dp).testTag("result_report")
+    ) {
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center) {
+            Text("تقرير", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFamily = LocalBayanFontFamily.current)
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.Rounded.Flag, contentDescription = "تقرير", modifier = Modifier.size(19.dp))
         }
     }
 }
