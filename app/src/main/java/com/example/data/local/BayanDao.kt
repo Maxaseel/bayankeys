@@ -44,6 +44,9 @@ interface BayanDao {
     @Query("SELECT COUNT(*) FROM learned_words")
     fun observeLearnedWordsCount(): Flow<Int>
 
+    @Query("SELECT * FROM learned_words")
+    suspend fun getAllLearnedWords(): List<LearnedWordEntity>
+
     @Query("SELECT * FROM learned_words WHERE languageCode = :languageCode AND word = :word LIMIT 1")
     suspend fun getWord(word: String, languageCode: String): LearnedWordEntity?
 

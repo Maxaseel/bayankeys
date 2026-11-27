@@ -31,6 +31,8 @@ import com.example.data.model.TranslationProviderType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import org.json.JSONObject
 
 private val Context.bayanDataStore: DataStore<Preferences> by preferencesDataStore(name = "bayan_settings")
 
@@ -427,6 +429,41 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.GP_CHARS_BEFORE_BREATH] = next.charsBeforeBreath.coerceIn(1, 50)
             prefs[Keys.GP_BREATH_DURATION] = next.breathPauseDuration.coerceIn(1, 50)
             prefs[Keys.GP_START_DELAY] = next.startDelay.coerceIn(1, 50)
+        }
+    }
+
+
+    suspend fun exportSettingsJson(): JSONArray {
+        val snapshot = context.bayanDataStore.data.first()
+        return JSONArray().apply {
+            snapshot.asMap().forEach { (key, value) ->
+                val item = JSONObject().put("name", key.name)
+                when (value) {
+                    is Boolean -> item.put("type", "boolean").put("value", value)
+                    is Int -> item.put("type", "int").put("value", value)
+                    is Long -> item.put("type", "long").put("value", value)
+                    is Float -> item.put("type", "float").put("value", value.toDouble())
+                    is String -> item.put("type", "string").put("value", value)
+                }
+                put(item)
+            }
+        }
+    }
+
+    suspend fun importSettingsJson(settingsJson: JSONArray) {
+        context.bayanDataStore.edit { prefs ->
+            for (index in 0 until settingsJson.length()) {
+                val item = settingsJson.optJSONObject(index) ?: continue
+                val name = item.optString("name").takeIf { it.isNotBlank() } ?: continue
+                val type = item.optString("type")
+                when (type) {
+                    "boolean" -> prefs[booleanPreferencesKey(name)] = item.optBoolean("value")
+                    "int" -> prefs[intPreferencesKey(name)] = item.optInt("value")
+                    "long" -> prefs[longPreferencesKey(name)] = item.optLong("value")
+                    "float" -> prefs[floatPreferencesKey(name)] = item.optDouble("value").toFloat()
+                    "string" -> prefs[stringPreferencesKey(name)] = item.optString("value")
+                }
+            }
         }
     }
 

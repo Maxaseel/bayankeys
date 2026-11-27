@@ -20,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -158,6 +160,50 @@ class BayanRepository(
 
     suspend fun clearUnpinnedClipboard() = withContext(Dispatchers.IO) {
         dao.clearUnpinnedClipboard()
+    }
+
+
+    suspend fun exportBackup(): String = withContext(Dispatchers.IO) {
+        val words = dao.getAllLearnedWords()
+        val wordsJson = JSONArray().apply {
+            words.forEach { word ->
+                put(JSONObject().apply {
+                    put("word", word.word)
+                    put("languageCode", word.languageCode)
+                    put("frequency", word.frequency)
+                    put("lastUsedAt", word.lastUsedAt)
+                    put("isUserAdded", word.isUserAdded)
+                })
+            }
+        }
+        JSONObject().apply {
+            put("backupVersion", 1)
+            put("createdAt", System.currentTimeMillis())
+            put("learnedWords", wordsJson)
+            put("settings", settings.exportSettingsJson())
+        }.toString(2)
+    }
+
+    suspend fun importBackup(rawJson: String): Result<Int> = withContext(Dispatchers.IO) {
+        runCatching {
+            val root = JSONObject(rawJson)
+            val wordsJson = root.optJSONArray("learnedWords") ?: JSONArray()
+            val restored = buildList {
+                for (index in 0 until wordsJson.length()) {
+                    val item = wordsJson.optJSONObject(index) ?: continue
+                    val word = item.optString("word").trim()
+                    val language = item.optString("languageCode").trim()
+                    if (word.isNotBlank() && language.isNotBlank()) {
+                        add(LearnedWordEntity(word, language, item.optInt("frequency", 1), item.optLong("lastUsedAt", System.currentTimeMillis()), item.optBoolean("isUserAdded", false)))
+                    }
+                }
+            }
+            val settingsJson = root.optJSONArray("settings") ?: JSONArray()
+            settings.importSettingsJson(settingsJson)
+            dao.clearAllLearnedWords()
+            if (restored.isNotEmpty()) dao.insertWordsIgnore(restored)
+            restored.size
+        }
     }
 
     // --- Continuous Learning ---

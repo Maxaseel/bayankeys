@@ -501,6 +501,8 @@ private fun BayanAppShell(
                             onAddCustomWord = viewModel::addCustomWord,
                             onDeleteLearnedWord = viewModel::deleteLearnedWord,
                             onResetDictionary = viewModel::resetLearnedDictionary,
+                            onExportBackup = viewModel::exportBackup,
+                            onImportBackup = viewModel::importBackup,
                             onBack = { navigateTo(Routes.HOME) }
                         )
                     }

@@ -75,6 +75,8 @@ fun ClipboardDictionaryScreen(
     onAddCustomWord: (String, KeyboardLanguage) -> Unit,
     onDeleteLearnedWord: (String, String) -> Unit,
     onResetDictionary: () -> Unit,
+    onExportBackup: suspend () -> String = { "" },
+    onImportBackup: suspend (String) -> Result<Int> = { Result.failure(IllegalArgumentException("Backup unavailable")) },
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {}
 ) {
@@ -84,6 +86,33 @@ fun ClipboardDictionaryScreen(
     var newClipText by remember { mutableStateOf("") }
     var newWordText by remember { mutableStateOf("") }
     var newWordLang by remember { mutableStateOf(KeyboardLanguage.ARABIC) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            try {
+                val json = onExportBackup()
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
+                    ?: error("Unable to open backup file")
+                backupMessage = pick(isAr, "تم حفظ النسخة الاحتياطية", "Backup saved")
+            } catch (_: Throwable) {
+                backupMessage = pick(isAr, "تعذر حفظ النسخة الاحتياطية", "Could not save backup")
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            try {
+                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    ?: error("Unable to read backup file")
+                val count = onImportBackup(json).getOrThrow()
+                backupMessage = pick(isAr, "تمت استعادة $count كلمة وإعدادات المستخدم", "Restored $count words and user settings")
+            } catch (_: Throwable) {
+                backupMessage = pick(isAr, "ملف النسخة الاحتياطية غير صالح", "Invalid backup file")
+            }
+        }
+    }
 
     if (dialog == "search") {
         AlertDialog(
@@ -137,6 +166,15 @@ fun ClipboardDictionaryScreen(
                         placeholder = { Text(pick(isAr, "أضف كلمة أو اسماً...", "Add a word or name...")) },
                         singleLine = true
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = { exportLauncher.launch("bayan-keys-backup.json") }, modifier = Modifier.weight(1f)) {
+                            Text(pick(isAr, "تصدير النسخة", "Export backup"))
+                        }
+                        Button(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) }, modifier = Modifier.weight(1f)) {
+                            Text(pick(isAr, "استعادة النسخة", "Restore backup"))
+                        }
+                    }
+                    backupMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         KeyboardLanguage.entries.forEach { lang ->
                             FilterChip(

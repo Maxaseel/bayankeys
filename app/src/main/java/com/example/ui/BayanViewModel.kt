@@ -597,6 +597,10 @@ class BayanViewModel(
         }
     }
 
+    suspend fun exportBackup(): String = repository.exportBackup()
+
+    suspend fun importBackup(rawJson: String): Result<Int> = repository.importBackup(rawJson)
+
     // Password Manager
     fun savePasswordEntry(
         id: Long = 0,
