@@ -254,9 +254,6 @@ class BayanInputMethodService :
                     onClipboardDelete = { id ->
                         serviceScope.launch { repository.deleteClipboard(id) }
                     },
-                    onClipboardMove = { clip, direction ->
-                        serviceScope.launch { repository.movePinnedClipboard(clip, direction) }
-                    },
                     onOpenSettings = ::openCompanionSettings
                 )
                 }

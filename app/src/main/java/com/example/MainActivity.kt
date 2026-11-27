@@ -31,7 +31,6 @@ import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,7 +75,6 @@ import com.example.ui.screens.BotAssistantHubScreen
 import com.example.ui.screens.ClipboardDictionaryScreen
 import com.example.ui.screens.CreateOrEditBotScreen
 import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.KeyboardSettingsScreen
 import com.example.ui.screens.PasswordManagerScreen
 import com.example.ui.screens.ThemeStudioScreen
 import com.example.ui.theme.BayanTheme
@@ -87,7 +85,6 @@ private object Routes {
     const val THEME = "theme"
     const val CLIPBOARD = "clipboard"
     const val PASSWORDS = "passwords"
-    const val KEYBOARD_SETTINGS = "keyboard_settings"
     const val BACKUP = "backup"
     const val BOTS = "bots"
     const val CREATE_BOT = "create_bot"
@@ -104,7 +101,6 @@ private val destinations = listOf(
     NavDestination(Routes.HOME, "الرئيسية", "Home", Icons.Rounded.Home),
     NavDestination(Routes.AI_API, "الذكاء", "AI & API", Icons.Rounded.AutoAwesome),
     NavDestination(Routes.THEME, "المظهر", "Themes", Icons.Rounded.Palette),
-    NavDestination(Routes.KEYBOARD_SETTINGS, "إعدادات اللوحة", "Keyboard", Icons.Rounded.Settings),
     NavDestination(Routes.BACKUP, "النسخ", "Backup", Icons.Rounded.CloudUpload),
     NavDestination(Routes.CLIPBOARD, "الحافظة", "Clipboard", Icons.Rounded.ContentPaste),
     NavDestination(Routes.PASSWORDS, "المرور", "Passwords", Icons.Rounded.VpnKey)
@@ -494,16 +490,6 @@ private fun BayanAppShell(
                             onPreviewShift = viewModel::onPreviewShift,
                             onPreviewSymbols = viewModel::onPreviewSymbols,
                             onPreviewPanel = viewModel::onPreviewPanel
-                        )
-                    }
-                    composable(Routes.KEYBOARD_SETTINGS) {
-                        KeyboardSettingsScreen(
-                            isAr = isAr,
-                            sizeConfig = sizeConfig,
-                            toolbarConfig = toolbarConfig,
-                            onUpdateSizeConfig = viewModel::updateSizeConfig,
-                            onUpdateToolbarConfig = viewModel::updateToolbarVisibility,
-                            modifier = Modifier.fillMaxSize()
                         )
                     }
                     composable(Routes.BACKUP) {
