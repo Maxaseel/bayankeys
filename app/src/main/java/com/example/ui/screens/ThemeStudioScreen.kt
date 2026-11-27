@@ -52,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -361,8 +360,8 @@ fun ThemeStudioScreen(
                             }
                             val visiblePresets = KeyboardThemePresets.all.filter { preset ->
                                 when (presetFilter) {
-                                    "dark" -> Color(preset.backgroundArgb).luminance() < 0.5f
-                                    "light" -> Color(preset.backgroundArgb).luminance() >= 0.5f
+                                    "dark" -> preset.isDark
+                                    "light" -> !preset.isDark
                                     "new" -> preset.isNew
                                     else -> true
                                 }

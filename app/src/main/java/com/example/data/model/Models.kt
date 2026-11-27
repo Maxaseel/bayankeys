@@ -392,6 +392,16 @@ object KeyboardThemePresets {
         KeyboardThemePreset("happy_board", "HappyBoard", "لوحة مرحة", false, 0xFFE8F4EB, 0xFFFFFCF3, 0xFFD7E8DC, 0xFFEC719D, 0xFF28372D, isNew = true, keyPaletteArgb = listOf(0xFFFFF7E8L, 0xFFF3F7EAL, 0xFFE3F2EAL, 0xFFDFF0F5L, 0xFFFFE5EDL)),
         KeyboardThemePreset("music_nova", "MusicNova Keys", "موسيقى نوفا", false, 0xFFF4E8F3, 0xFFFFFCFF, 0xFFE4D5E7, 0xFFAA4DB5, 0xFF2A1930, isNew = true, keyPaletteArgb = listOf(0xFFFF7386L, 0xFFFFB65CL, 0xFF86CC67L, 0xFF55C7C3L, 0xFF608EEDL, 0xFFB167D9L)),
         KeyboardThemePreset("leaf_board", "LeafBoard", "لوحة الأوراق", false, 0xFFEAF0DD, 0xFFFFFDF6, 0xFFD6E1C1, 0xFF577B32, 0xFF263019, isNew = true),
+        KeyboardThemePreset("carbon_blue", "Carbon Blue", "فحم أزرق", true, 0xFF141720, 0xFF323844, 0xFF252B35, 0xFF65A8FF, 0xFFEEF3FB, isNew = true),
+        KeyboardThemePreset("chrome_silver", "Chrome Silver", "كروم فضي", true, 0xFF25272B, 0xFF5B5E63, 0xFF46494E, 0xFFAAC6E3, 0xFFF5F7FA, isNew = true),
+        KeyboardThemePreset("ringed_chrome", "Ringed Chrome", "كروم دائري", true, 0xFF191B1E, 0xFF34373B, 0xFF24272A, 0xFFE7ECEF, 0xFFF5F6F7, isNew = true),
+        KeyboardThemePreset("matrix_green", "Matrix Green", "مصفوفة خضراء", true, 0xFF050806, 0xFF101512, 0xFF0B0F0D, 0xFF34F06F, 0xFFE7FFEE, isNew = true),
+        KeyboardThemePreset("cobalt_night", "Cobalt Night", "ليل الكوبالت", true, 0xFF0A1230, 0xFF14264A, 0xFF1A2D58, 0xFF5DA8FF, 0xFFEFF5FF, isNew = true),
+        KeyboardThemePreset("rose_graphite", "Rose Graphite", "غرافيت وردي", true, 0xFF19191E, 0xFF3F4046, 0xFF29292F, 0xFFEC6FA9, 0xFFFDF2F7, isNew = true),
+        KeyboardThemePreset("indigo_glow", "Indigo Glow", "وهج نيلي", true, 0xFF111226, 0xFF232949, 0xFF171A38, 0xFF8294FF, 0xFFF0F1FF, isNew = true),
+        KeyboardThemePreset("cyan_outline", "Cyan Outline", "حدود سماوية", true, 0xFF111719, 0xFF1B2427, 0xFF252C2F, 0xFF20DAE6, 0xFFE8FEFF, isNew = true),
+        KeyboardThemePreset("lime_circuit", "Lime Circuit", "دوائر ليمونية", true, 0xFF111511, 0xFF262A25, 0xFF1B201A, 0xFFB8E526, 0xFFF4F8EA, isNew = true),
+        KeyboardThemePreset("smoked_glass", "Smoked Glass", "زجاج مدخن", true, 0xFF1C1D20, 0xFF5C5E62, 0xFF3C3F43, 0xFF93A6BA, 0xFFF7FAFC, isNew = true),
         KeyboardThemePreset("candy_pop_keys", "CandyPop Keys", "مفاتيح الحلوى", false, 0xFFF0EFF3, 0xFFFFFCFF, 0xFFDDD8E8, 0xFFE748AE, 0xFF2B2433, isNew = true, keyPaletteArgb = listOf(0xFFFFA2B7L, 0xFFFFCA73L, 0xFFB7DB78L, 0xFF76D3DCL, 0xFF86A8F2L, 0xFFC18BE8L))
     )
 }
