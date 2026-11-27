@@ -266,6 +266,7 @@ private fun BayanAppShell(
         ThemeMode.DARK -> true
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM -> systemDark
+        ThemeMode.CUSTOM -> systemDark
     }
     val sizeConfig by viewModel.sizeConfig.collectAsStateWithLifecycle()
     val toolbarConfig by viewModel.toolbarVisibility.collectAsStateWithLifecycle()
