@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.EmojiEmotions
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Language
@@ -81,6 +83,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -89,6 +92,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -592,6 +596,7 @@ fun BayanKeyboardView(
                     KeyboardEmojiPanel(
                         palette = palette,
                         height = panelHeight,
+                        isArabicUi = isArabicUi,
                         onEmojiClick = { emoji ->
                             performHaptic()
                             onKeyText(emoji)
@@ -2066,14 +2071,90 @@ private fun KeyboardPasswordsPanel(
 }
 
 @Composable
+private fun EmojiCategoryTab(
+    label: String,
+    selected: Boolean,
+    palette: ResolvedKeyboardPalette,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(width = 44.dp, height = 38.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) palette.accent.copy(alpha = 0.18f) else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = if (selected) palette.accent else palette.text,
+            fontSize = if (label == "ABC") 12.sp else 20.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
 private fun KeyboardEmojiPanel(
     palette: ResolvedKeyboardPalette,
     height: Dp,
+    isArabicUi: Boolean,
     onEmojiClick: (String) -> Unit,
     onBackspace: () -> Unit,
     onClose: () -> Unit
 ) {
-    val allEmojis = remember { KeyboardLayouts.emojiCategories.flatMap { it.second } }
+    val context = LocalContext.current
+    val categories = remember(context) { EmojiCatalog.load(context) }
+    val preferences = remember(context) {
+        context.applicationContext.getSharedPreferences("bayan_emoji_history", Context.MODE_PRIVATE)
+    }
+    val recentEmojis = remember(preferences) {
+        mutableStateListOf<String>().apply {
+            addAll(
+                preferences.getString("recent_emojis", "").orEmpty()
+                    .split("\u001F")
+                    .filter { it.isNotBlank() }
+                    .take(30)
+            )
+        }
+    }
+    var selectedCategoryId by remember { mutableStateOf("recent") }
+    var searchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val allEmojis = remember(categories) { categories.flatMap { it.emojis } }
+    val emojiByValue = remember(allEmojis) { allEmojis.associateBy { it.value } }
+    val recentSnapshot = recentEmojis.toList()
+    val quickEmojis = recentSnapshot.take(9).ifEmpty {
+        listOf("😂", "😭", "🤣", "❤️", "😍", "😎", "💯", "🎉", "👍")
+    }
+    val query = searchQuery.trim()
+    val visibleEmojis = remember(categories, allEmojis, emojiByValue, selectedCategoryId, query, recentSnapshot) {
+        when {
+            query.isNotEmpty() -> allEmojis.filter {
+                it.value.contains(query) || it.name.contains(query, ignoreCase = true)
+            }
+            selectedCategoryId == "recent" -> recentSnapshot.mapNotNull { emojiByValue[it] }
+                .ifEmpty { categories.firstOrNull()?.emojis?.take(42).orEmpty() }
+            else -> categories.firstOrNull { it.id == selectedCategoryId }?.emojis.orEmpty()
+        }
+    }
+
+    val chooseEmoji: (String) -> Unit = { emoji ->
+        recentEmojis.remove(emoji)
+        recentEmojis.add(0, emoji)
+        while (recentEmojis.size > 30) recentEmojis.removeAt(recentEmojis.lastIndex)
+        preferences.edit()
+            .putString("recent_emojis", recentEmojis.joinToString("\u001F"))
+            .apply()
+        onEmojiClick(emoji)
+    }
+    val selectCategory: (String) -> Unit = { categoryId ->
+        selectedCategoryId = categoryId
+        searchQuery = ""
+        searchActive = false
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2081,36 +2162,78 @@ private fun KeyboardEmojiPanel(
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "الرموز التعبيرية • Emoji",
-                color = palette.text,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = LocalBayanFontFamily.current,
-                modifier = Modifier.weight(1f)
-            )
+            if (searchActive) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(palette.key)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (searchQuery.isEmpty()) {
+                        Text(
+                            text = if (isArabicUi) "ابحث عن إيموجي" else "Search emoji",
+                            color = palette.text.copy(alpha = 0.55f),
+                            fontSize = 14.sp
+                        )
+                    }
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = TextStyle(color = palette.text, fontSize = 14.sp),
+                        cursorBrush = SolidColor(palette.accent),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(quickEmojis, key = { it }) { emoji ->
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .clickable { chooseEmoji(emoji) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = emoji, fontSize = 25.sp)
+                        }
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(palette.specialKey)
-                    .clickable(onClick = onBackspace),
+                    .clickable {
+                        searchActive = !searchActive
+                        if (!searchActive) searchQuery = ""
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.Backspace,
-                    contentDescription = "Backspace",
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = if (isArabicUi) "بحث عن إيموجي" else "Search emoji",
                     tint = palette.text,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(6.dp))
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(palette.specialKey)
                     .clickable(onClick = onClose),
@@ -2118,30 +2241,74 @@ private fun KeyboardEmojiPanel(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close Emoji",
+                    contentDescription = if (isArabicUi) "إغلاق الإيموجي" else "Close emoji",
                     tint = palette.text,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(40.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(allEmojis) { emoji ->
-                Box(
-                    modifier = Modifier
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onEmojiClick(emoji) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = emoji, fontSize = 22.sp)
+
+        Spacer(modifier = Modifier.height(4.dp))
+        if (visibleEmojis.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isArabicUi) "لا توجد نتائج" else "No results",
+                    color = palette.text.copy(alpha = 0.65f),
+                    fontSize = 14.sp
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(40.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                items(visibleEmojis, key = { it.value }) { entry ->
+                    Box(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { chooseEmoji(entry.value) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = entry.value, fontSize = 24.sp)
+                    }
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            EmojiCategoryTab("ABC", selected = false, palette = palette, onClick = onClose)
+            EmojiCategoryTab(
+                label = "🕘",
+                selected = selectedCategoryId == "recent" && query.isEmpty(),
+                palette = palette,
+                onClick = { selectCategory("recent") }
+            )
+            categories.forEach { category ->
+                EmojiCategoryTab(
+                    label = category.icon,
+                    selected = selectedCategoryId == category.id && query.isEmpty(),
+                    palette = palette,
+                    onClick = { selectCategory(category.id) }
+                )
+            }
+            EmojiCategoryTab("⌫", selected = false, palette = palette, onClick = onBackspace)
         }
     }
 }

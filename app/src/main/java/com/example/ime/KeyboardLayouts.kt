@@ -322,9 +322,4 @@ object KeyboardLayouts {
         }
         return addDefaultLongPressVariants(core + listOf(bottomRow(language, layer)), language, layer)
     }
-
-    val emojiCategories: List<Pair<String, List<String>>> = listOf(
-        "😊" to listOf("😀", "😃", "😄", "😁", "😊", "😉", "😍", "🥰", "😘", "😎", "🤩", "🤔", "🫡", "🤗", "🙏", "👍", "👏", "🔥", "✨", "🎉", "💯", "✅", "❤️", "💙"),
-        "💼" to listOf("📝", "📌", "📅", "⏰", "📧", "📞", "💬", "🌐", "🚀", "💡", "⚡", "🔍", "📊", "📁", "🔗", "🛡️", "⚙️", "💻", "📱", "🎙️", "📸", "🏆", "⭐", "🌟")
-    )
 }
