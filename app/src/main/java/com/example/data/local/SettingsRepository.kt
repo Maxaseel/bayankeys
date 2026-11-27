@@ -71,6 +71,7 @@ class SettingsRepository(private val context: Context) {
         // Size & Behavior
         val HEIGHT_SCALE = floatPreferencesKey("height_scale")
         val FONT_SCALE = floatPreferencesKey("font_scale")
+        val TOOLBAR_ICON_SCALE = floatPreferencesKey("toolbar_icon_scale")
         val BOTTOM_PADDING = floatPreferencesKey("bottom_padding")
         val SHOW_NUMBER_ROW = booleanPreferencesKey("show_number_row")
         val NUMBER_ROW_STYLE = stringPreferencesKey("number_row_style")
@@ -157,6 +158,7 @@ class SettingsRepository(private val context: Context) {
         KeyboardSizeConfig(
             heightScale = prefs[Keys.HEIGHT_SCALE] ?: 1.0f,
             fontScale = prefs[Keys.FONT_SCALE] ?: 1.0f,
+            toolbarIconScale = (prefs[Keys.TOOLBAR_ICON_SCALE] ?: 1.0f).coerceIn(0.75f, 1.5f),
             bottomPaddingDp = prefs[Keys.BOTTOM_PADDING] ?: 6f,
             showNumberRow = prefs[Keys.SHOW_NUMBER_ROW] ?: true,
             numberRowStyle = NumberRowStyle.fromId(prefs[Keys.NUMBER_ROW_STYLE]),
@@ -299,6 +301,7 @@ class SettingsRepository(private val context: Context) {
         context.bayanDataStore.edit { prefs ->
             prefs[Keys.HEIGHT_SCALE] = next.heightScale.coerceIn(0.78f, 1.35f)
             prefs[Keys.FONT_SCALE] = next.fontScale.coerceIn(0.85f, 1.30f)
+            prefs[Keys.TOOLBAR_ICON_SCALE] = next.toolbarIconScale.coerceIn(0.75f, 1.5f)
             prefs[Keys.BOTTOM_PADDING] = next.bottomPaddingDp.coerceIn(0f, 32f)
             prefs[Keys.SHOW_NUMBER_ROW] = next.showNumberRow
             prefs[Keys.NUMBER_ROW_STYLE] = next.numberRowStyle.id

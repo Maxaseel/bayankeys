@@ -25,16 +25,20 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -254,6 +258,8 @@ private fun BayanAppShell(
     val imeStatus by viewModel.imeStatus.collectAsStateWithLifecycle()
     val aiConfig by viewModel.aiConfig.collectAsStateWithLifecycle()
     val themeConfig by viewModel.themeConfig.collectAsStateWithLifecycle()
+    val systemDark = isSystemInDarkTheme()
+    val effectiveDark = themeConfig.resolvePalette(systemDark).isDark
     val sizeConfig by viewModel.sizeConfig.collectAsStateWithLifecycle()
     val toolbarConfig by viewModel.toolbarVisibility.collectAsStateWithLifecycle()
     val gradualPasteConfig by viewModel.gradualPasteConfig.collectAsStateWithLifecycle()
@@ -330,6 +336,23 @@ private fun BayanAppShell(
                         containerColor = MaterialTheme.colorScheme.background
                     ),
                     actions = {
+                        IconButton(
+                            onClick = {
+                                textToolbar.hide()
+                                focusManager.clearFocus(force = true)
+                                viewModel.setThemeMode(if (effectiveDark) com.example.data.model.ThemeMode.LIGHT else com.example.data.model.ThemeMode.DARK)
+                            },
+                            modifier = Modifier.testTag("theme_mode_toggle")
+                        ) {
+                            Icon(
+                                imageVector = if (effectiveDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                                contentDescription = pick(
+                                    isAr,
+                                    if (effectiveDark) "التبديل إلى الوضع الفاتح" else "التبديل إلى الوضع الداكن",
+                                    if (effectiveDark) "Switch to light mode" else "Switch to dark mode"
+                                )
+                            )
+                        }
                         Surface(
                             onClick = {
                                 textToolbar.hide()

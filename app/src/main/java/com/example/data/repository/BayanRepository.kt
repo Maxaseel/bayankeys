@@ -177,11 +177,12 @@ class BayanRepository(
             }
         }
         val pinnedClipboardJson = JSONArray().apply {
-            dao.getPinnedClipboardItems().forEach { clip ->
+            dao.getPinnedClipboardItems().forEachIndexed { index, clip ->
                 put(JSONObject().apply {
                     put("text", clip.text)
                     put("timestamp", clip.timestamp)
-                    put("pinOrder", clip.pinOrder)
+                    // The array order is the canonical user-visible order.
+                    put("pinOrder", index.toLong())
                 })
             }
         }
@@ -230,7 +231,11 @@ class BayanRepository(
                 for (index in 0 until pinnedJson.length()) {
                     val item = pinnedJson.optJSONObject(index) ?: continue
                     val text = item.optString("text").trim()
-                    if (text.isNotBlank()) add(ClipboardEntity(text = text, timestamp = item.optLong("timestamp", System.currentTimeMillis()), isPinned = true, pinOrder = item.optLong("pinOrder", index.toLong())))
+                    if (text.isNotBlank()) {
+                        // Do not trust stored pinOrder values: older backups could contain
+                        // values written in the opposite direction. JSON order is canonical.
+                        add(ClipboardEntity(text = text, timestamp = item.optLong("timestamp", System.currentTimeMillis()), isPinned = true, pinOrder = index.toLong()))
+                    }
                 }
             }
             val passwordsJson = root.optJSONArray("passwords") ?: JSONArray()

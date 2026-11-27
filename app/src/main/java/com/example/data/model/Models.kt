@@ -564,6 +564,7 @@ enum class OneHandedMode(val id: String, val labelAr: String, val labelEn: Strin
 data class KeyboardSizeConfig(
     val heightScale: Float = 1.0f,
     val fontScale: Float = 1.0f,
+    val toolbarIconScale: Float = 1.0f,
     val bottomPaddingDp: Float = 6f,
     val showNumberRow: Boolean = true,
     val numberRowStyle: NumberRowStyle = NumberRowStyle.WESTERN,

@@ -818,7 +818,7 @@ private fun KeyboardToolbar(
                                     CircularProgressIndicator(
                                         color = Color.White,
                                         strokeWidth = 2.dp,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(14.dp * sizeConfig.toolbarIconScale)
                                     )
                                 } else {
                                     Icon(
@@ -856,7 +856,7 @@ private fun KeyboardToolbar(
                                 imageVector = Icons.Rounded.SmartToy,
                                 contentDescription = "AI Bots Assistant",
                                 tint = if (active) Color.White else Color(0xFF4F8FF7),
-                                modifier = Modifier.size(if (isPreviewMode) 15.dp else 18.dp)
+                                modifier = Modifier.size((if (isPreviewMode) 15f else 18f).dp * sizeConfig.toolbarIconScale)
                             )
                         }
                         // Each pinned user bot renders with its own dedicated icon & color right beside Bots
@@ -875,7 +875,7 @@ private fun KeyboardToolbar(
                                     imageVector = botIconVector(bot.iconOption),
                                     contentDescription = bot.name,
                                     tint = botColor,
-                                    modifier = Modifier.size(if (isPreviewMode) 15.dp else 18.dp)
+                                    modifier = Modifier.size((if (isPreviewMode) 15f else 18f).dp * sizeConfig.toolbarIconScale)
                                 )
                             }
                         }
@@ -888,6 +888,7 @@ private fun KeyboardToolbar(
                             active = state.panel == KeyboardPanel.CLIPBOARD,
                             palette = palette,
                             isPreviewMode = isPreviewMode,
+                            iconScale = sizeConfig.toolbarIconScale,
                             onClick = {
                                 onPanelChange(
                                     if (state.panel == KeyboardPanel.CLIPBOARD) KeyboardPanel.KEYS
@@ -904,6 +905,7 @@ private fun KeyboardToolbar(
                             active = state.panel == KeyboardPanel.QUICK_TOOLS,
                             palette = palette,
                             isPreviewMode = isPreviewMode,
+                            iconScale = sizeConfig.toolbarIconScale,
                             onClick = {
                                 onPanelChange(
                                     if (state.panel == KeyboardPanel.QUICK_TOOLS) KeyboardPanel.KEYS
@@ -928,7 +930,7 @@ private fun KeyboardToolbar(
                                 imageVector = Icons.Rounded.Mic,
                                 contentDescription = "Voice Typing",
                                 tint = if (micActive) Color.White else palette.text.copy(alpha = 0.85f),
-                                modifier = Modifier.size(if (isPreviewMode) 15.dp else 18.dp)
+                                modifier = Modifier.size((if (isPreviewMode) 15f else 18f).dp * sizeConfig.toolbarIconScale)
                             )
                         }
                     }
@@ -940,6 +942,7 @@ private fun KeyboardToolbar(
                             active = state.panel == KeyboardPanel.PASSWORDS,
                             palette = palette,
                             isPreviewMode = isPreviewMode,
+                            iconScale = sizeConfig.toolbarIconScale,
                             onClick = {
                                 onPanelChange(
                                     if (state.panel == KeyboardPanel.PASSWORDS) KeyboardPanel.KEYS
@@ -967,7 +970,7 @@ private fun KeyboardToolbar(
                                     imageVector = Icons.Rounded.Translate,
                                     contentDescription = "Translate",
                                     tint = if (state.panel == KeyboardPanel.TRANSLATE_TARGET) Color.White else palette.accent,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(14.dp * sizeConfig.toolbarIconScale)
                                 )
                                 Text(
                                     text = state.targetTranslateLang.flagEmoji,
@@ -984,6 +987,7 @@ private fun KeyboardToolbar(
                             active = state.panel == KeyboardPanel.EMOJI,
                             palette = palette,
                             isPreviewMode = isPreviewMode,
+                            iconScale = sizeConfig.toolbarIconScale,
                             onClick = {
                                 onPanelChange(
                                     if (state.panel == KeyboardPanel.EMOJI) KeyboardPanel.KEYS
@@ -1000,6 +1004,7 @@ private fun KeyboardToolbar(
                             active = false,
                             palette = palette,
                             isPreviewMode = isPreviewMode,
+                            iconScale = sizeConfig.toolbarIconScale,
                             onClick = onOpenSettings
                         )
                     }
@@ -1022,7 +1027,7 @@ private fun KeyboardToolbar(
                         imageVector = Icons.Rounded.Shield,
                         contentDescription = "Incognito Mode Active",
                         tint = Color(0xFFC4B5FD),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(14.dp * sizeConfig.toolbarIconScale)
                     )
                 }
             }
@@ -1063,6 +1068,7 @@ private fun KeyboardToolbar(
             active = state.panel == KeyboardPanel.TOOLBAR_CUSTOMIZE,
             palette = palette,
             isPreviewMode = isPreviewMode,
+            iconScale = sizeConfig.toolbarIconScale,
             onClick = {
                 onPanelChange(
                     if (state.panel == KeyboardPanel.TOOLBAR_CUSTOMIZE) KeyboardPanel.KEYS
@@ -1080,6 +1086,7 @@ private fun ToolbarIconButton(
     active: Boolean,
     palette: ResolvedKeyboardPalette,
     isPreviewMode: Boolean,
+    iconScale: Float,
     onClick: () -> Unit
 ) {
     val size = if (isPreviewMode) 28.dp else 34.dp
@@ -1095,7 +1102,7 @@ private fun ToolbarIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = if (active) palette.accent else palette.text.copy(alpha = 0.85f),
-            modifier = Modifier.size(if (isPreviewMode) 15.dp else 18.dp)
+            modifier = Modifier.size((if (isPreviewMode) 15f else 18f).dp * iconScale)
         )
     }
 }

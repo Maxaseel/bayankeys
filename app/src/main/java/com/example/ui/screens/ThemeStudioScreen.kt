@@ -595,6 +595,17 @@ fun ThemeStudioScreen(
                             )
 
                             Text(
+                                text = "${pick(isAr, "حجم أيقونات شريط اللوحة", "Toolbar Icon Size")}: ${(sizeConfig.toolbarIconScale * 100).roundToInt()}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Slider(
+                                value = sizeConfig.toolbarIconScale,
+                                onValueChange = { v -> onUpdateSizeConfig { it.copy(toolbarIconScale = v) } },
+                                valueRange = 0.75f..1.50f
+                            )
+
+                            Text(
                                 text = "${pick(isAr, "المسافة السفلية", "Bottom Padding")}: ${sizeConfig.bottomPaddingDp.roundToInt()}dp",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium
