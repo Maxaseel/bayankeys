@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PasswordEntryEntity::class,
         CustomBotEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class BayanDatabase : RoomDatabase() {
@@ -87,6 +87,13 @@ abstract class BayanDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE clipboard_items ADD COLUMN pinOrder INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE clipboard_items SET pinOrder = timestamp WHERE isPinned = 1")
+            }
+        }
+
         fun getInstance(context: Context): BayanDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -94,7 +101,7 @@ abstract class BayanDatabase : RoomDatabase() {
                     BayanDatabase::class.java,
                     "bayan_keyboard.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

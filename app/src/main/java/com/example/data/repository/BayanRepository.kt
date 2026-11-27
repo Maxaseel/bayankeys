@@ -131,12 +131,25 @@ class BayanRepository(
         if (existing != null) {
             dao.updateClipboardPinned(existing.id, pinned || existing.isPinned)
         } else {
-            dao.insertClipboardItem(ClipboardEntity(text = trimmed, isPinned = pinned))
+            dao.insertClipboardItem(ClipboardEntity(text = trimmed, isPinned = pinned, pinOrder = if (pinned) System.currentTimeMillis() else 0L))
         }
     }
 
     suspend fun togglePinClipboard(item: ClipboardEntity) = withContext(Dispatchers.IO) {
-        dao.updateClipboardPinned(item.id, !item.isPinned)
+        val nextOrder = if (!item.isPinned) System.currentTimeMillis() else 0L
+        dao.updateClipboardPinned(item.id, !item.isPinned, nextOrder)
+    }
+
+    suspend fun movePinnedClipboard(item: ClipboardEntity, direction: Int) = withContext(Dispatchers.IO) {
+        if (!item.isPinned) return@withContext
+        val pinned = dao.getClipboardItemsOnce(200).filter { it.isPinned }
+        val index = pinned.indexOfFirst { it.id == item.id }
+        val target = index + direction
+        if (index < 0 || target !in pinned.indices) return@withContext
+        val other = pinned[target]
+        val currentOrder = item.pinOrder
+        dao.updateClipboardPinOrder(item.id, other.pinOrder)
+        dao.updateClipboardPinOrder(other.id, currentOrder)
     }
 
     suspend fun deleteClipboard(id: Long) = withContext(Dispatchers.IO) {

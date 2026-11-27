@@ -532,6 +532,7 @@ data class ResolvedKeyboardPalette(
     val showBorders: Boolean,
     val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED,
     val toolbarBackground: Color = Color.Transparent,
+    val toolbarIconScale: Float = 1.0f,
     val keyPalette: List<Color> = emptyList()
 )
 
@@ -576,7 +577,8 @@ data class KeyboardSizeConfig(
     val splitKeyboard: Boolean = false,
     val incognitoMode: Boolean = false,
     val autoCorrectEnabled: Boolean = false,
-    val showSuggestions: Boolean = true
+    val showSuggestions: Boolean = true,
+    val toolbarIconScale: Float = 1.0f
 )
 
 data class AiProviderConfig(
@@ -629,7 +631,9 @@ enum class ToolbarAction(
 
 data class ToolbarVisibilityConfig(
     val order: List<ToolbarAction> = ToolbarAction.defaultOrder(),
-    val hiddenActions: Set<ToolbarAction> = emptySet()
+    val hiddenActions: Set<ToolbarAction> = emptySet(),
+    val quickTools: List<QuickInputTool> = emptyList(),
+    val quickToolsSecondRow: Boolean = true
 ) {
     fun isVisible(action: ToolbarAction): Boolean = !hiddenActions.contains(action)
 

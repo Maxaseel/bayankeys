@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.Flow
 interface BayanDao {
 
     // --- Clipboard ---
-    @Query("SELECT * FROM clipboard_items ORDER BY isPinned DESC, timestamp DESC")
+    @Query("SELECT * FROM clipboard_items ORDER BY isPinned DESC, CASE WHEN isPinned = 1 THEN pinOrder ELSE 0 END ASC, timestamp DESC")
     fun observeClipboardItems(): Flow<List<ClipboardEntity>>
 
-    @Query("SELECT * FROM clipboard_items ORDER BY isPinned DESC, timestamp DESC LIMIT :limit")
+    @Query("SELECT * FROM clipboard_items ORDER BY isPinned DESC, CASE WHEN isPinned = 1 THEN pinOrder ELSE 0 END ASC, timestamp DESC LIMIT :limit")
     suspend fun getClipboardItemsOnce(limit: Int = 60): List<ClipboardEntity>
 
     @Query("SELECT * FROM clipboard_items WHERE text = :text LIMIT 1")
@@ -22,8 +22,11 @@ interface BayanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertClipboardItem(item: ClipboardEntity): Long
 
-    @Query("UPDATE clipboard_items SET isPinned = :pinned, timestamp = :timestamp WHERE id = :id")
-    suspend fun updateClipboardPinned(id: Long, pinned: Boolean, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE clipboard_items SET isPinned = :pinned, timestamp = :timestamp, pinOrder = :pinOrder WHERE id = :id")
+    suspend fun updateClipboardPinned(id: Long, pinned: Boolean, pinOrder: Long = 0L, timestamp: Long = System.currentTimeMillis())
+
+    @Query("UPDATE clipboard_items SET pinOrder = :pinOrder WHERE id = :id")
+    suspend fun updateClipboardPinOrder(id: Long, pinOrder: Long)
 
     @Query("UPDATE clipboard_items SET timestamp = :timestamp WHERE id = :id")
     suspend fun touchClipboardTimestamp(id: Long, timestamp: Long = System.currentTimeMillis())

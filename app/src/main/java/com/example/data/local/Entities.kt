@@ -12,7 +12,8 @@ data class ClipboardEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val text: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+    val pinOrder: Long = 0L
 )
 
 @Entity(

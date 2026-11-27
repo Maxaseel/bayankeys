@@ -82,6 +82,7 @@ class SettingsRepository(private val context: Context) {
         val INCOGNITO_MODE = booleanPreferencesKey("incognito_mode")
         val AUTO_CORRECT_ENABLED = booleanPreferencesKey("auto_correct_enabled")
         val SHOW_SUGGESTIONS = booleanPreferencesKey("show_suggestions")
+        val TOOLBAR_ICON_SCALE = floatPreferencesKey("toolbar_icon_scale")
 
         // Languages
         val ENABLED_LANGUAGES = stringPreferencesKey("enabled_languages")
@@ -109,6 +110,8 @@ class SettingsRepository(private val context: Context) {
         val TB_SHOW_TRANSLATE = booleanPreferencesKey("tb_show_translate")
         val TB_SHOW_EMOJI = booleanPreferencesKey("tb_show_emoji")
         val TB_SHOW_SETTINGS = booleanPreferencesKey("tb_show_settings")
+        val TB_QUICK_TOOLS = stringPreferencesKey("tb_quick_tools")
+        val TB_QUICK_TOOLS_SECOND_ROW = booleanPreferencesKey("tb_quick_tools_second_row")
 
         fun aiKeyFor(providerId: String) = stringPreferencesKey("ai_key_$providerId")
         fun aiModelFor(providerId: String) = stringPreferencesKey("ai_model_$providerId")
@@ -167,7 +170,8 @@ class SettingsRepository(private val context: Context) {
             splitKeyboard = prefs[Keys.SPLIT_KEYBOARD] ?: false,
             incognitoMode = prefs[Keys.INCOGNITO_MODE] ?: false,
             autoCorrectEnabled = prefs[Keys.AUTO_CORRECT_ENABLED] ?: false,
-            showSuggestions = prefs[Keys.SHOW_SUGGESTIONS] ?: true
+            showSuggestions = prefs[Keys.SHOW_SUGGESTIONS] ?: true,
+            toolbarIconScale = (prefs[Keys.TOOLBAR_ICON_SCALE] ?: 1.0f).coerceIn(0.75f, 1.35f)
         )
     }
 
@@ -235,9 +239,14 @@ class SettingsRepository(private val context: Context) {
                 if (prefs[Keys.TB_SHOW_SETTINGS] == false) add(ToolbarAction.SETTINGS)
             }
         }
+        val quickTools = (prefs[Keys.TB_QUICK_TOOLS] ?: "").split(",").mapNotNull { id ->
+            com.example.data.model.QuickInputTool.entries.firstOrNull { it.id == id.trim() }
+        }.distinct()
         ToolbarVisibilityConfig(
             order = parsedOrder,
-            hiddenActions = hiddenSet
+            hiddenActions = hiddenSet,
+            quickTools = quickTools,
+            quickToolsSecondRow = prefs[Keys.TB_QUICK_TOOLS_SECOND_ROW] ?: true
         )
     }
 
@@ -310,6 +319,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.INCOGNITO_MODE] = next.incognitoMode
             prefs[Keys.AUTO_CORRECT_ENABLED] = next.autoCorrectEnabled
             prefs[Keys.SHOW_SUGGESTIONS] = next.showSuggestions
+            prefs[Keys.TOOLBAR_ICON_SCALE] = next.toolbarIconScale.coerceIn(0.75f, 1.35f)
         }
     }
 
@@ -435,6 +445,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.TB_SHOW_TRANSLATE] = next.showTranslate
             prefs[Keys.TB_SHOW_EMOJI] = next.showEmoji
             prefs[Keys.TB_SHOW_SETTINGS] = next.showSettings
+            prefs[Keys.TB_QUICK_TOOLS] = next.quickTools.joinToString(",") { it.id }
+            prefs[Keys.TB_QUICK_TOOLS_SECOND_ROW] = next.quickToolsSecondRow
         }
     }
 }

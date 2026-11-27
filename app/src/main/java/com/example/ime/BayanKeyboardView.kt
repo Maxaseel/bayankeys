@@ -77,6 +77,7 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -271,9 +272,10 @@ fun BayanKeyboardView(
     onClipboardPaste: (String) -> Unit,
     onClipboardPinToggle: (ClipboardEntity) -> Unit,
     onClipboardDelete: (Long) -> Unit,
+    onClipboardMove: (ClipboardEntity, Int) -> Unit = { _, _ -> },
     onOpenSettings: () -> Unit
 ) {
-    val palette = themeConfig.resolvePalette(isSystemInDarkTheme())
+    val palette = themeConfig.resolvePalette(isSystemInDarkTheme()).copy(toolbarIconScale = sizeConfig.toolbarIconScale)
     val appLanguage = LocalConfiguration.current.locales[0]?.language.orEmpty()
     val isArabicUi = appLanguage.equals("ar", ignoreCase = true)
     val context = LocalContext.current
@@ -358,6 +360,7 @@ fun BayanKeyboardView(
                         performHaptic()
                         onPanelChange(panel)
                     },
+                    onQuickToolClick = onQuickToolClick,
                     onOpenSettings = onOpenSettings
                 )
 
@@ -557,6 +560,7 @@ fun BayanKeyboardView(
                             performHaptic()
                             onClipboardDelete(it)
                         },
+                        onMove = onClipboardMove,
                         onClose = { onPanelChange(KeyboardPanel.KEYS) }
                     )
                     }
@@ -774,6 +778,7 @@ private fun KeyboardToolbar(
     onToggleTranslateTarget: () -> Unit,
     onUndoAiClick: () -> Unit,
     onPanelChange: (KeyboardPanel) -> Unit,
+    onQuickToolClick: (QuickInputTool) -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val visibleActions = remember(toolbarConfig) {
@@ -782,6 +787,7 @@ private fun KeyboardToolbar(
     val pinnedBots = remember(customBots) {
         customBots.filter { it.isPinnedToToolbar }
     }
+    val iconScale = sizeConfig.toolbarIconScale
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -838,7 +844,7 @@ private fun KeyboardToolbar(
                     }
 
                     ToolbarAction.BOTS -> {
-                        val btnSize = if (isPreviewMode) 28.dp else 34.dp
+                        val btnSize = (if (isPreviewMode) 28.dp else 34.dp) * iconScale
                         val active = state.panel == KeyboardPanel.BOTS
                         Box(
                             modifier = Modifier
@@ -856,7 +862,7 @@ private fun KeyboardToolbar(
                                 imageVector = Icons.Rounded.SmartToy,
                                 contentDescription = "AI Bots Assistant",
                                 tint = if (active) Color.White else Color(0xFF4F8FF7),
-                                modifier = Modifier.size(if (isPreviewMode) 15.dp else 18.dp)
+                                modifier = Modifier.size((if (isPreviewMode) 15.dp else 18.dp) * palette.toolbarIconScale)
                             )
                         }
                         // Each pinned user bot renders with its own dedicated icon & color right beside Bots
@@ -915,7 +921,7 @@ private fun KeyboardToolbar(
 
                     ToolbarAction.VOICE -> {
                         val micActive = state.isVoiceListening
-                        val btnSize = if (isPreviewMode) 28.dp else 34.dp
+                        val btnSize = (if (isPreviewMode) 28.dp else 34.dp) * iconScale
                         Box(
                             modifier = Modifier
                                 .size(btnSize)
@@ -1005,6 +1011,15 @@ private fun KeyboardToolbar(
                     }
                 }
             }
+            if (!toolbarConfig.quickToolsSecondRow) {
+                toolbarConfig.quickTools.forEach { tool ->
+                    ToolbarIconButton(icon = quickToolIcon(tool), contentDescription = tool.labelEn, active = false, palette = palette, isPreviewMode = isPreviewMode, onClick = { onQuickToolClick(tool) })
+                }
+            }
+        }
+
+        if (toolbarConfig.quickToolsSecondRow && toolbarConfig.quickTools.isNotEmpty()) {
+            QuickToolbarRow(tools = toolbarConfig.quickTools, palette = palette, isPreviewMode = isPreviewMode, onToolClick = onQuickToolClick)
         }
 
         // Incognito active badge if forced
@@ -1082,7 +1097,7 @@ private fun ToolbarIconButton(
     isPreviewMode: Boolean,
     onClick: () -> Unit
 ) {
-    val size = if (isPreviewMode) 28.dp else 34.dp
+    val size = (if (isPreviewMode) 28.dp else 34.dp) * palette.toolbarIconScale
     Box(
         modifier = Modifier
             .size(size)
@@ -1523,6 +1538,7 @@ private fun KeyboardClipboardPanel(
     onGradualPaste: (String) -> Unit,
     onPinToggle: (ClipboardEntity) -> Unit,
     onDelete: (Long) -> Unit,
+    onMove: (ClipboardEntity, Int) -> Unit,
     onClose: () -> Unit
 ) {
     val unpinned = remember(items) { items.filter { !it.isPinned } }
@@ -1642,6 +1658,14 @@ private fun KeyboardClipboardPanel(
                                                 tint = palette.text.copy(alpha = 0.5f),
                                                 modifier = Modifier.size(13.dp)
                                             )
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Box(modifier = Modifier.size(24.dp).clip(CircleShape).clickable { onMove(clip, -1) }, contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up", tint = palette.accent, modifier = Modifier.size(14.dp))
+                                            }
+                                            Box(modifier = Modifier.size(24.dp).clip(CircleShape).clickable { onMove(clip, 1) }, contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move down", tint = palette.accent, modifier = Modifier.size(14.dp))
+                                            }
                                         }
                                         Box(
                                             modifier = Modifier
@@ -2656,6 +2680,20 @@ private fun KeyboardTranslateTargetPanel(
 }
 
 @Composable
+private fun QuickToolbarRow(
+    tools: List<QuickInputTool>,
+    palette: ResolvedKeyboardPalette,
+    isPreviewMode: Boolean,
+    onToolClick: (QuickInputTool) -> Unit
+) {
+    Row(Modifier.fillMaxWidth().background(palette.toolbarBackground).padding(horizontal = 6.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        tools.forEach { tool ->
+            ToolbarIconButton(icon = quickToolIcon(tool), contentDescription = tool.labelEn, active = false, palette = palette, isPreviewMode = isPreviewMode, onClick = { onToolClick(tool) })
+        }
+    }
+}
+
+@Composable
 private fun KeyboardToolbarCustomizePanel(
     initialTab: Int,
     config: ToolbarVisibilityConfig,
@@ -2684,10 +2722,11 @@ private fun KeyboardToolbarCustomizePanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // 2 Quick Tabs: Toolbar Grid & Number Row | Key Shape & Gradual Paste ⚡
+            // 3 focused tabs: toolbar, sizing, and paste behavior
             listOf(
-                0 to "الشريط والأرقام",
-                1 to "الشكل واللصق ⚡"
+                0 to "الشريط والأدوات",
+                1 to "الحجم والشكل",
+                2 to "اللصق الذكي ⚡"
             ).forEach { (tabIdx, title) ->
                 val selected = activeTab == tabIdx
                 Box(
@@ -2793,6 +2832,17 @@ private fun KeyboardToolbarCustomizePanel(
                                 }
                             }
                         }
+                    }
+                }
+
+                item(key = "toolbar_icon_scale") {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(palette.key).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("حجم أيقونات الشريط", color = palette.text, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current, modifier = Modifier.weight(1f))
+                            Text("${(sizeConfig.toolbarIconScale * 100).toInt()}%", color = palette.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(value = sizeConfig.toolbarIconScale, onValueChange = { value -> onUpdateSizeConfig { it.copy(toolbarIconScale = value) } }, valueRange = 0.75f..1.35f, steps = 11)
+                        Text("صغّر أو كبّر الأيقونات بما يناسب يدك ومساحة الشاشة", color = palette.text.copy(alpha = 0.62f), fontSize = 10.sp, fontFamily = LocalBayanFontFamily.current)
                     }
                 }
 
@@ -2911,19 +2961,36 @@ private fun KeyboardToolbarCustomizePanel(
                         }
                     }
                 }
-            } else {
-                // Tab 1: Key Button Shape Grid + Gradual Paste 1..50 Settings
-                item(key = "key_shape_grid") {
-                    KeyButtonShapeGrid(
-                        selectedShape = themeConfig.keyShape,
-                        isAr = true,
-                        accentColor = Color(0xFF38BDF8),
-                        surfaceColor = palette.key,
-                        textColor = palette.text,
-                        compact = true,
-                        onSelectShape = onSetKeyShape
-                    )
+                item(key = "quick_tools_toolbar") {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(palette.key).padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("أدوات من شبكة الإدخال", color = palette.text, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current, modifier = Modifier.weight(1f))
+                            Switch(checked = config.quickToolsSecondRow, onCheckedChange = { second -> onUpdateToolbar { it.copy(quickToolsSecondRow = second) } })
+                        }
+                        Text(if (config.quickToolsSecondRow) "مفعّلة في شريط ثانٍ تحت الرئيسي" else "مضافة مباشرة إلى الشريط الرئيسي", color = palette.text.copy(alpha = 0.62f), fontSize = 10.sp, fontFamily = LocalBayanFontFamily.current)
+                        QuickToolCategory.entries.forEach { category ->
+                            Text(category.labelAr, color = palette.accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = LocalBayanFontFamily.current)
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                QuickInputTool.entries.filter { it.category == category }.take(5).forEach { tool ->
+                                    val selected = tool in config.quickTools
+                                    Box(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (selected) palette.accent else palette.specialKey).clickable { onUpdateToolbar { current -> current.copy(quickTools = if (selected) current.quickTools - tool else current.quickTools + tool) } }.padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
+                                        Icon(quickToolIcon(tool), contentDescription = tool.labelAr, tint = if (selected) Color.White else palette.text, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+            } else if (activeTab == 1) {
+                // Tab 1: Key Button Shape and sizing
+                item(key = "key_shape_grid") {
+                    KeyButtonShapeGrid(selectedShape = themeConfig.keyShape, isAr = true, accentColor = Color(0xFF38BDF8), surfaceColor = palette.key, textColor = palette.text, compact = true, onSelectShape = onSetKeyShape)
+                }
+                item(key = "height_scale_hint") {
+                    Text("ارتفاع المفاتيح يُضبط من إعدادات حجم لوحة المفاتيح الرئيسية", color = palette.text.copy(alpha = 0.65f), fontSize = 11.sp, fontFamily = LocalBayanFontFamily.current, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+            } else {
+                // Tab 2: Gradual Paste 1..50 Settings
                 item(key = "gradual_paste_settings") {
                     GradualPasteSettingsSection(
                         config = gradualPasteConfig,

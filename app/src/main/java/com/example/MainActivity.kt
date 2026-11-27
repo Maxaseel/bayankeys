@@ -496,6 +496,7 @@ private fun BayanAppShell(
                             onAddManualClip = viewModel::addManualClip,
                             onTogglePinClip = viewModel::togglePinClipboard,
                             onDeleteClip = viewModel::deleteClipboard,
+                            onMovePinnedClip = viewModel::movePinnedClipboard,
                             onClearUnpinned = viewModel::clearUnpinnedClipboard,
                             onAddCustomWord = viewModel::addCustomWord,
                             onDeleteLearnedWord = viewModel::deleteLearnedWord,

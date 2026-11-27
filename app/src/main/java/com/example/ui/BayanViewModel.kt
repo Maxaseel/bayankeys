@@ -570,6 +570,10 @@ class BayanViewModel(
         viewModelScope.launch { repository.togglePinClipboard(item) }
     }
 
+    fun movePinnedClipboard(item: ClipboardEntity, direction: Int) {
+        viewModelScope.launch { repository.movePinnedClipboard(item, direction) }
+    }
+
     fun deleteClipboard(id: Long) {
         viewModelScope.launch { repository.deleteClipboard(id) }
     }
