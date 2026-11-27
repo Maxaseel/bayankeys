@@ -254,7 +254,9 @@ data class KeyboardThemePreset(
     val specialKeyArgb: Long,
     val accentArgb: Long,
     val textArgb: Long,
-    val toolbarArgb: Long? = null
+    val toolbarArgb: Long? = null,
+    val isNew: Boolean = false,
+    val keyPaletteArgb: List<Long> = emptyList()
 )
 
 object KeyboardThemePresets {
@@ -350,7 +352,47 @@ object KeyboardThemePresets {
         desertAmber,
         royalOcean,
         bayanMidnightBlue,
-        roseQuartz
+        roseQuartz,
+        KeyboardThemePreset("graphite_gray", "Graphite Gray", "رمادي الغرافيت", true, 0xFF20252B, 0xFF343B44, 0xFF292F36, 0xFF9BA8B5, 0xFFF2F5F7, isNew = true),
+        KeyboardThemePreset("deep_black", "Deep Black", "أسود عميق", true, 0xFF090A0C, 0xFF191B1F, 0xFF111317, 0xFF7C9CFF, 0xFFF5F6F8, isNew = true),
+        KeyboardThemePreset("os_premium_white", "OS Premium White", "أبيض فاخر", false, 0xFFE9EDF2, 0xFFFFFFFF, 0xFFD9E0E8, 0xFF2769C5, 0xFF182331, isNew = true),
+        KeyboardThemePreset("os_glass_white", "OS Glass White", "زجاج أبيض", false, 0xFFE6EDF4, 0xFFF9FCFF, 0xFFD1DDE8, 0xFF397CA8, 0xFF172A39, isNew = true),
+        KeyboardThemePreset("pearl_white", "Pearl White", "لؤلؤ أبيض", false, 0xFFF1F0ED, 0xFFFFFEFC, 0xFFE0DED8, 0xFF8A6B45, 0xFF292722, isNew = true),
+        KeyboardThemePreset("crimson_night", "Crimson Night", "ليل قرمزي", true, 0xFF200D16, 0xFF381522, 0xFF2C101B, 0xFFFF5574, 0xFFFFF2F4, isNew = true),
+        KeyboardThemePreset("silver_glass", "Silver Glass", "زجاج فضي", false, 0xFFDDE3E8, 0xFFF8FAFC, 0xFFC7D0D8, 0xFF496B88, 0xFF172431, isNew = true),
+        KeyboardThemePreset("pink_shadow", "Pink Shadow", "ظل وردي", true, 0xFF261624, 0xFF3B2338, 0xFF301B2D, 0xFFF27DB5, 0xFFFFF2F8, isNew = true),
+        KeyboardThemePreset("peach_glass", "Peach Glass", "زجاج خوخي", false, 0xFFF6E7DF, 0xFFFFF8F2, 0xFFEAD3C7, 0xFFB65D3E, 0xFF34221B, isNew = true),
+        KeyboardThemePreset("mystic_purple", "Mystic Purple", "أرجوان غامض", true, 0xFF19132C, 0xFF2B2145, 0xFF221A39, 0xFFB69AFF, 0xFFF6F1FF, isNew = true),
+        KeyboardThemePreset("colorpulse", "ColorPulse", "نبض الألوان", true, 0xFF101B27, 0xFF1D2D3B, 0xFF172431, 0xFF43E0C0, 0xFFF1FAFF, isNew = true, keyPaletteArgb = listOf(0xFFFF8393L, 0xFFFFC46B, 0xFF8ADE7D, 0xFF70D5E8, 0xFF9F9AFF, 0xFFFF8AD5)),
+        KeyboardThemePreset("desert_gold", "Desert Gold", "ذهب الصحراء", false, 0xFFF0E6D4, 0xFFFFFAEF, 0xFFE0D0B2, 0xFF946019, 0xFF302517, isNew = true),
+        KeyboardThemePreset("aquanova", "AquaNova", "أكوانوفا", true, 0xFF09232B, 0xFF123640, 0xFF0E2D37, 0xFF46D9D0, 0xFFE9FFFF, isNew = true),
+        KeyboardThemePreset("berrypop", "BerryPop", "توت نابض", false, 0xFFF4E5EF, 0xFFFFF9FD, 0xFFE7CCDE, 0xFF9B3477, 0xFF32162A, isNew = true),
+        KeyboardThemePreset("matcha_keys", "MatchaKeys", "ماتشا أخضر", false, 0xFFE7EBDD, 0xFFFAFCF5, 0xFFD0D9C3, 0xFF52723A, 0xFF20291A, isNew = true),
+        KeyboardThemePreset("sunset_orange", "Sunset Orange", "برتقالي الغروب", true, 0xFF2B1913, 0xFF46271B, 0xFF382017, 0xFFFF9A55, 0xFFFFF4E9, isNew = true),
+        KeyboardThemePreset("soft_sky", "SoftSky", "سماء هادئة", false, 0xFFE4F0F8, 0xFFF9FCFF, 0xFFCCDFED, 0xFF347BA8, 0xFF172B3B, isNew = true),
+        KeyboardThemePreset("unicorn_nova", "UnicornNova", "نجمة قوس قزح", false, 0xFFF0E8F7, 0xFFFFFAFF, 0xFFE2D3F0, 0xFF7749AD, 0xFF291B37, isNew = true),
+        KeyboardThemePreset("minimal_red", "Minimal Red", "أحمر بسيط", false, 0xFFF0E9E8, 0xFFFFFBFA, 0xFFE2D4D2, 0xFFB52B36, 0xFF2C1A1B, isNew = true),
+        KeyboardThemePreset("flower_aura", "FlowerAura", "هالة الزهور", false, 0xFFF2E9EF, 0xFFFFFBFD, 0xFFE6D5E0, 0xFF9B4C78, 0xFF321C29, isNew = true),
+        KeyboardThemePreset("bear_forest", "Bear Forest", "غابة هادئة", true, 0xFF17231D, 0xFF27372C, 0xFF1F2D24, 0xFF9BC77C, 0xFFF1F8ED, isNew = true),
+        KeyboardThemePreset("elite_board", "EliteBoard", "لوحة النخبة", true, 0xFF111923, 0xFF202D3B, 0xFF192431, 0xFFD6B36A, 0xFFF8F5EC, isNew = true),
+        KeyboardThemePreset("heart_glow", "HeartGlow", "وهج القلب", true, 0xFF29131E, 0xFF421D30, 0xFF351827, 0xFFFF759D, 0xFFFFF2F6, isNew = true),
+        KeyboardThemePreset("bunny_bloom", "BunnyBloom", "زهر الأرنب", false, 0xFFF4EAF0, 0xFFFFFCFE, 0xFFEAD7E2, 0xFF98617D, 0xFF30202A, isNew = true),
+        KeyboardThemePreset("reactor_glow", "ReactorGlow", "وهج المفاعل", true, 0xFF101C1B, 0xFF1C302D, 0xFF162623, 0xFF63E6A5, 0xFFEFFFF6, isNew = true),
+        KeyboardThemePreset("cotton_keys", "CottonKeys", "قطن ناعم", false, 0xFFF0EDF0, 0xFFFFFCFF, 0xFFE0DAE2, 0xFF79627F, 0xFF29232D, isNew = true),
+        KeyboardThemePreset("meow_mist", "MeowMist", "ضباب القطط", false, 0xFFE9EAF2, 0xFFFCFCFF, 0xFFD6D9E6, 0xFF5B6599, 0xFF202338, isNew = true),
+        KeyboardThemePreset("leaf_flow", "LeafFlow", "انسياب الأوراق", false, 0xFFE8EFE7, 0xFFFAFCF8, 0xFFD2E0D0, 0xFF3D7952, 0xFF1D2D21, isNew = true),
+        KeyboardThemePreset("halloween_keys", "Halloween Keys", "مفاتيح الهالوين", true, 0xFF21152C, 0xFF35223F, 0xFF2A1B34, 0xFFFF9D3D, 0xFFFFF5E9, isNew = true),
+        KeyboardThemePreset("piano_keys", "Piano Keys", "مفاتيح البيانو", false, 0xFFE5E5E5, 0xFFFFFFFF, 0xFFCCCCCC, 0xFF30343B, 0xFF17191D, isNew = true),
+        KeyboardThemePreset("captain_glow", "CaptainGlow", "وهج القبطان", true, 0xFF102033, 0xFF1B3450, 0xFF152A41, 0xFFFFC857, 0xFFF3F8FF, isNew = true),
+        KeyboardThemePreset("cat_verse", "CatVerse", "عالم القطط", true, 0xFF201A2D, 0xFF332940, 0xFF292136, 0xFFCAA6FF, 0xFFF8F2FF, isNew = true),
+        KeyboardThemePreset("kitty_nest", "KittyNest", "عش القطط", false, 0xFFF2EAE5, 0xFFFFFBF8, 0xFFE5D7CF, 0xFF9C6958, 0xFF30221D, isNew = true),
+        KeyboardThemePreset("dragon_flight", "Dragon Flight", "تحليق التنين", true, 0xFF14221F, 0xFF243832, 0xFF1B2D28, 0xFFFF765F, 0xFFF5FFF9, isNew = true),
+        KeyboardThemePreset("rainbow_dream", "RainbowDream", "حلم قوس قزح", false, 0xFFE8EDF5, 0xFFFCFDFF, 0xFFD4DCE9, 0xFF6556B3, 0xFF202137, isNew = true, keyPaletteArgb = listOf(0xFFFF9AA2L, 0xFFFFC98BL, 0xFFFFE895L, 0xFFA9DFA4L, 0xFF8CD7E8L, 0xFF9DB9F2L, 0xFFC5A6EAL)),
+        KeyboardThemePreset("melody_pop", "MelodyPop", "لحن نابض", false, 0xFFF3E8F0, 0xFFFFFBFE, 0xFFE7D4E2, 0xFF9C477F, 0xFF321C2B, isNew = true, keyPaletteArgb = listOf(0xFFFF6E74L, 0xFFFFB44BL, 0xFFE8DF45L, 0xFF61D276L, 0xFF43C7D7L, 0xFF607BE5L, 0xFFC063D6L)),
+        KeyboardThemePreset("happy_board", "HappyBoard", "لوحة مرحة", false, 0xFFE8F4EB, 0xFFFFFCF3, 0xFFD7E8DC, 0xFFEC719D, 0xFF28372D, isNew = true, keyPaletteArgb = listOf(0xFFFFF7E8L, 0xFFF3F7EAL, 0xFFE3F2EAL, 0xFFDFF0F5L, 0xFFFFE5EDL)),
+        KeyboardThemePreset("music_nova", "MusicNova Keys", "موسيقى نوفا", false, 0xFFF4E8F3, 0xFFFFFCFF, 0xFFE4D5E7, 0xFFAA4DB5, 0xFF2A1930, isNew = true, keyPaletteArgb = listOf(0xFFFF7386L, 0xFFFFB65CL, 0xFF86CC67L, 0xFF55C7C3L, 0xFF608EEDL, 0xFFB167D9L)),
+        KeyboardThemePreset("leaf_board", "LeafBoard", "لوحة الأوراق", false, 0xFFEAF0DD, 0xFFFFFDF6, 0xFFD6E1C1, 0xFF577B32, 0xFF263019, isNew = true),
+        KeyboardThemePreset("candy_pop_keys", "CandyPop Keys", "مفاتيح الحلوى", false, 0xFFF0EFF3, 0xFFFFFCFF, 0xFFDDD8E8, 0xFFE748AE, 0xFF2B2433, isNew = true, keyPaletteArgb = listOf(0xFFFFA2B7L, 0xFFFFCA73L, 0xFFB7DB78L, 0xFF76D3DCL, 0xFF86A8F2L, 0xFFC18BE8L))
     )
 }
 
@@ -435,7 +477,8 @@ data class KeyboardThemeConfig(
                     cornerRadiusDp = keyCornerRadiusDp,
                     showBorders = showKeyBorders,
                     keyShape = keyShape,
-                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb)
+                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb),
+                    keyPalette = preset.keyPaletteArgb.map { Color(it) }
                 )
             }
             ThemeMode.DARK, ThemeMode.LIGHT -> {
@@ -452,7 +495,8 @@ data class KeyboardThemeConfig(
                     cornerRadiusDp = keyCornerRadiusDp,
                     showBorders = showKeyBorders,
                     keyShape = keyShape,
-                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb)
+                    toolbarBackground = Color(preset.toolbarArgb ?: preset.backgroundArgb),
+                    keyPalette = preset.keyPaletteArgb.map { Color(it) }
                 )
             }
         }
@@ -477,7 +521,8 @@ data class ResolvedKeyboardPalette(
     val cornerRadiusDp: Float,
     val showBorders: Boolean,
     val keyShape: KeyButtonShape = KeyButtonShape.ROUNDED,
-    val toolbarBackground: Color = Color.Transparent
+    val toolbarBackground: Color = Color.Transparent,
+    val keyPalette: List<Color> = emptyList()
 )
 
 enum class NumberRowStyle(

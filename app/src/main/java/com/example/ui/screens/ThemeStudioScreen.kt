@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,15 +45,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.rounded.Bolt
 import com.example.data.local.ClipboardEntity
 import com.example.data.model.GradualPasteConfig
@@ -77,6 +79,96 @@ import com.example.ui.theme.fontFamilyFor
 import com.example.ui.components.GradualPasteSettingsSection
 import com.example.ui.components.KeyButtonShapeGrid
 import kotlin.math.roundToInt
+
+@Composable
+private fun ThemePresetCard(
+    preset: KeyboardThemePreset,
+    isAr: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = Color(preset.backgroundArgb),
+        border = BorderStroke(
+            width = if (selected) 3.dp else 1.dp,
+            color = if (selected) Color(preset.accentArgb) else MaterialTheme.colorScheme.outline
+        ),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MiniKeyboardPreview(preset)
+            Text(
+                text = if (isAr) preset.nameAr else preset.nameEn,
+                color = Color(preset.textArgb),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniKeyboardPreview(preset: KeyboardThemePreset) {
+    val letterRows = listOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(preset.backgroundArgb))
+            .padding(5.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        letterRows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                row.forEach { letter ->
+                    val keyColor = if (preset.keyPaletteArgb.isNotEmpty()) {
+                        Color(preset.keyPaletteArgb[letter.code % preset.keyPaletteArgb.size])
+                    } else {
+                        Color(preset.keyArgb)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(17.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(keyColor)
+                            .border(0.6.dp, Color(preset.textArgb).copy(alpha = 0.16f), RoundedCornerShape(4.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(letter.toString(), color = Color(preset.textArgb), fontSize = 7.sp, lineHeight = 8.sp)
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            listOf("?123", "☺", "space", "↵").forEachIndexed { index, label ->
+                val isAction = index != 2
+                Box(
+                    modifier = Modifier
+                        .weight(if (index == 2) 2.6f else 1f)
+                        .height(17.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (isAction) Color(preset.specialKeyArgb) else Color(preset.keyArgb)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = if (index == 3) Color(preset.accentArgb) else Color(preset.textArgb),
+                        fontSize = if (index == 2) 6.sp else 7.sp,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
 
 private val customColorSwatches: List<Long> = listOf(
     0xFF0B1120, 0xFF1E293B, 0xFF09090B, 0xFF18181B, 0xFF082032, 0xFF1A374D,
@@ -122,6 +214,7 @@ fun ThemeStudioScreen(
 ) {
     val resolved = themeConfig.resolvePalette(isSystemInDarkTheme())
     var selectedColorTarget by remember { mutableIntStateOf(0) } // 0=bg, 1=key, 2=special, 3=accent, 4=text
+    var presetFilter by remember { mutableStateOf("all") }
 
     val activeColorArgb = when (selectedColorTarget) {
         0 -> resolved.background.toArgb().toLong() and 0xFFFFFFFFL
@@ -249,44 +342,47 @@ fun ThemeStudioScreen(
                                 }
                             }
 
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                items(KeyboardThemePresets.all) { preset ->
-                                    val selected = themeConfig.presetId == preset.id && themeConfig.themeMode != ThemeMode.CUSTOM
-                                    Surface(
-                                        onClick = { onApplyPreset(preset) },
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = Color(preset.backgroundArgb),
-                                        border = BorderStroke(
-                                            width = if (selected) 2.5.dp else 1.dp,
-                                            color = if (selected) Color(preset.accentArgb) else MaterialTheme.colorScheme.outline
-                                        ),
-                                        modifier = Modifier.width(126.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "all" to pick(isAr, "الكل", "All"),
+                                    "dark" to pick(isAr, "داكن", "Dark"),
+                                    "light" to pick(isAr, "فاتح", "Light"),
+                                    "new" to pick(isAr, "جديد", "New")
+                                ).forEach { (key, label) ->
+                                    FilterChip(
+                                        selected = presetFilter == key,
+                                        onClick = { presetFilter = key },
+                                        label = { Text(label) }
+                                    )
+                                }
+                            }
+                            val visiblePresets = KeyboardThemePresets.all.filter { preset ->
+                                when (presetFilter) {
+                                    "dark" -> Color(preset.backgroundArgb).luminance() < 0.5f
+                                    "light" -> Color(preset.backgroundArgb).luminance() >= 0.5f
+                                    "new" -> preset.isNew
+                                    else -> true
+                                }
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                visiblePresets.chunked(2).forEach { rowPresets ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(12.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(18.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(preset.keyArgb))
-                                                )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(18.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(preset.accentArgb))
-                                                )
-                                            }
-                                            Text(
-                                                text = if (isAr) preset.nameAr else preset.nameEn,
-                                                color = Color(preset.textArgb),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                maxLines = 1
+                                        rowPresets.forEach { preset ->
+                                            ThemePresetCard(
+                                                preset = preset,
+                                                isAr = isAr,
+                                                selected = themeConfig.presetId == preset.id && themeConfig.themeMode != ThemeMode.CUSTOM,
+                                                onClick = { onApplyPreset(preset) },
+                                                modifier = Modifier.weight(1f)
                                             )
                                         }
+                                        if (rowPresets.size == 1) Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }

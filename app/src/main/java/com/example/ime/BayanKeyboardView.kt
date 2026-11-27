@@ -1251,8 +1251,8 @@ private fun KeyboardKeyButton(
         }
         KeyKind.BACKSPACE, KeyKind.SYMBOLS_TOGGLE, KeyKind.LANGUAGE_SWITCH, KeyKind.EMOJI ->
             if (noBg) Color.Transparent else palette.specialKey
-        KeyKind.CHARACTER, KeyKind.SPACE ->
-            if (noBg) Color.Transparent else palette.key
+        KeyKind.CHARACTER -> if (noBg) Color.Transparent else palette.keyColorFor(spec.label)
+        KeyKind.SPACE -> if (noBg) Color.Transparent else palette.key
     }.let { base ->
         if (isPressed) palette.accent.copy(alpha = 0.35f) else base
     }
@@ -3296,4 +3296,9 @@ private fun KeyboardBotsPanel(
             }
         }
     }
+}
+private fun ResolvedKeyboardPalette.keyColorFor(label: String): Color {
+    if (keyPalette.isEmpty()) return key
+    val characterCode = label.firstOrNull()?.uppercaseChar()?.code ?: 0
+    return keyPalette[characterCode % keyPalette.size]
 }
