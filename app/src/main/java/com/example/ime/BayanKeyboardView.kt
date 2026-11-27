@@ -790,9 +790,13 @@ private fun KeyboardToolbar(
     val visibleActions = remember(toolbarConfig) {
         toolbarConfig.order.filter { toolbarConfig.isVisible(it) }
     }
-    val primaryActions = (if (sizeConfig.quickToolsSecondRow) visibleActions.filterNot { it.isQuickInputTool } else visibleActions)
+    // Keep the original toolbar actions in their saved order. Quick input tools
+    // are removed into the second row only when that option is enabled.
+    val originalToolbarActions = visibleActions.filterNot { it.isQuickInputTool }
+    val selectedQuickTools = visibleActions.filter { it.isQuickInputTool }
+    val primaryActions = (if (sizeConfig.quickToolsSecondRow) originalToolbarActions else visibleActions)
         .let { if (isArabicUi) it.asReversed() else it }
-    val secondaryActions = (if (sizeConfig.quickToolsSecondRow) visibleActions.filter { it.isQuickInputTool } else emptyList())
+    val secondaryActions = (if (sizeConfig.quickToolsSecondRow) selectedQuickTools else emptyList())
         .let { if (isArabicUi) it.asReversed() else it }
     val pinnedBots = remember(customBots) {
         customBots.filter { it.isPinnedToToolbar }
