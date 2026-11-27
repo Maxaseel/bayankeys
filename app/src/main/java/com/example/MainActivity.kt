@@ -315,7 +315,7 @@ private fun BayanAppShell(
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                TopAppBar(
+                if (currentRoute != Routes.CLIPBOARD) TopAppBar(
                     title = {
                         Text(
                             text = pick(isAr, "لوحة بيان الذكية", "Bayan Keys"),
@@ -359,7 +359,7 @@ private fun BayanAppShell(
                 )
             },
             bottomBar = {
-                if (!useNavRail && !isKeyboardOpen) {
+                if (currentRoute != Routes.CLIPBOARD && !useNavRail && !isKeyboardOpen) {
                     NavigationBar {
                         destinations.forEach { dest ->
                             NavigationBarItem(
@@ -387,7 +387,7 @@ private fun BayanAppShell(
                     .consumeWindowInsets(innerPadding)
                     .imePadding()
             ) {
-                if (useNavRail) {
+                if (useNavRail && currentRoute != Routes.CLIPBOARD) {
                     NavigationRail {
                         destinations.forEach { dest ->
                             NavigationRailItem(
@@ -499,7 +499,8 @@ private fun BayanAppShell(
                             onClearUnpinned = viewModel::clearUnpinnedClipboard,
                             onAddCustomWord = viewModel::addCustomWord,
                             onDeleteLearnedWord = viewModel::deleteLearnedWord,
-                            onResetDictionary = viewModel::resetLearnedDictionary
+                            onResetDictionary = viewModel::resetLearnedDictionary,
+                            onBack = { navigateTo(Routes.HOME) }
                         )
                     }
                     composable(Routes.PASSWORDS) {

@@ -1,5 +1,10 @@
 package com.example.ime
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -89,6 +94,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -198,6 +204,20 @@ data class KeyboardUiState(
     val proofreadReview: ProofreadDiffReview? = null
 )
 
+@SuppressLint("MissingPermission")
+@Suppress("DEPRECATION")
+private fun vibrateForKey(vibrator: Vibrator?) {
+    if (vibrator?.hasVibrator() != true) return
+    val durationMs = 18L
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        vibrator.vibrate(
+            VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+        )
+    } else {
+        vibrator.vibrate(durationMs)
+    }
+}
+
 @Composable
 fun BayanKeyboardView(
     state: KeyboardUiState,
@@ -251,10 +271,15 @@ fun BayanKeyboardView(
     val palette = themeConfig.resolvePalette(isSystemInDarkTheme())
     val appLanguage = LocalConfiguration.current.locales[0]?.language.orEmpty()
     val isArabicUi = appLanguage.equals("ar", ignoreCase = true)
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    @Suppress("DEPRECATION")
+    val vibrator = remember(context) {
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
     val performHaptic = {
         if (sizeConfig.hapticFeedback) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            vibrateForKey(vibrator)
         }
     }
 
@@ -328,8 +353,7 @@ fun BayanKeyboardView(
                         performHaptic()
                         onPanelChange(panel)
                     },
-                    onOpenSettings = onOpenSettings,
-                    onCloseAiResult = onDismissProofreadDiff
+                    onOpenSettings = onOpenSettings
                 )
 
             // 2. Suggestion Strip (RTL for Arabic, plus Auto-Dismissing Recent Copied Text chip)
@@ -743,8 +767,7 @@ private fun KeyboardToolbar(
     onToggleTranslateTarget: () -> Unit,
     onUndoAiClick: () -> Unit,
     onPanelChange: (KeyboardPanel) -> Unit,
-    onOpenSettings: () -> Unit,
-    onCloseAiResult: () -> Unit = {}
+    onOpenSettings: () -> Unit
 ) {
     val visibleActions = remember(toolbarConfig) {
         toolbarConfig.order.filter { toolbarConfig.isVisible(it) }
@@ -768,17 +791,6 @@ private fun KeyboardToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            if (state.panel == KeyboardPanel.PROOFREAD_DIFF) {
-                val closeSize = if (isPreviewMode) 28.dp else 36.dp
-                Box(
-                    modifier = Modifier.size(closeSize).clip(CircleShape).background(palette.accent)
-                        .clickable(onClick = onCloseAiResult),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Rounded.Close, contentDescription = "إغلاق النتيجة", tint = Color.White,
-                        modifier = Modifier.size(if (isPreviewMode) 16.dp else 22.dp))
-                }
-            }
             visibleActions.forEach { action ->
                 when (action) {
                     ToolbarAction.PROOFREAD -> {
@@ -2593,7 +2605,26 @@ private fun KeyboardProofreadDiffPanel(
         val isTranslation = review.targetLanguage != null
         val targetIsRtl = review.targetLanguage == TargetTranslateLanguage.ARABIC ||
             review.targetLanguage == TargetTranslateLanguage.URDU
-        Spacer(Modifier.height(if (isTranslation) 18.dp else 22.dp))
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Box(modifier = Modifier.fillMaxWidth().height(30.dp)) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(palette.specialKey)
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "إغلاق النتيجة",
+                        tint = palette.text,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(if (isTranslation) 26.dp else 24.dp)
