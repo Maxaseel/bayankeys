@@ -27,9 +27,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,10 +71,12 @@ import com.example.ui.AppStrings.pick
 import com.example.ui.BayanViewModel
 import com.example.ui.components.ProvideSafeTextToolbar
 import com.example.ui.screens.AiSettingsScreen
+import com.example.ui.screens.BackupScreen
 import com.example.ui.screens.BotAssistantHubScreen
 import com.example.ui.screens.ClipboardDictionaryScreen
 import com.example.ui.screens.CreateOrEditBotScreen
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.KeyboardSettingsScreen
 import com.example.ui.screens.PasswordManagerScreen
 import com.example.ui.screens.ThemeStudioScreen
 import com.example.ui.theme.BayanTheme
@@ -83,6 +87,8 @@ private object Routes {
     const val THEME = "theme"
     const val CLIPBOARD = "clipboard"
     const val PASSWORDS = "passwords"
+    const val KEYBOARD_SETTINGS = "keyboard_settings"
+    const val BACKUP = "backup"
     const val BOTS = "bots"
     const val CREATE_BOT = "create_bot"
 }
@@ -98,6 +104,8 @@ private val destinations = listOf(
     NavDestination(Routes.HOME, "الرئيسية", "Home", Icons.Rounded.Home),
     NavDestination(Routes.AI_API, "الذكاء", "AI & API", Icons.Rounded.AutoAwesome),
     NavDestination(Routes.THEME, "المظهر", "Themes", Icons.Rounded.Palette),
+    NavDestination(Routes.KEYBOARD_SETTINGS, "إعدادات اللوحة", "Keyboard", Icons.Rounded.Settings),
+    NavDestination(Routes.BACKUP, "النسخ", "Backup", Icons.Rounded.CloudUpload),
     NavDestination(Routes.CLIPBOARD, "الحافظة", "Clipboard", Icons.Rounded.ContentPaste),
     NavDestination(Routes.PASSWORDS, "المرور", "Passwords", Icons.Rounded.VpnKey)
 )
@@ -315,7 +323,7 @@ private fun BayanAppShell(
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                if (currentRoute != Routes.CLIPBOARD) TopAppBar(
+                TopAppBar(
                     title = {
                         Text(
                             text = pick(isAr, "لوحة بيان الذكية", "Bayan Keys"),
@@ -359,7 +367,7 @@ private fun BayanAppShell(
                 )
             },
             bottomBar = {
-                if (currentRoute != Routes.CLIPBOARD && !useNavRail && !isKeyboardOpen) {
+                if (!useNavRail && !isKeyboardOpen) {
                     NavigationBar {
                         destinations.forEach { dest ->
                             NavigationBarItem(
@@ -387,7 +395,7 @@ private fun BayanAppShell(
                     .consumeWindowInsets(innerPadding)
                     .imePadding()
             ) {
-                if (useNavRail && currentRoute != Routes.CLIPBOARD) {
+                if (useNavRail) {
                     NavigationRail {
                         destinations.forEach { dest ->
                             NavigationRailItem(
@@ -488,6 +496,24 @@ private fun BayanAppShell(
                             onPreviewPanel = viewModel::onPreviewPanel
                         )
                     }
+                    composable(Routes.KEYBOARD_SETTINGS) {
+                        KeyboardSettingsScreen(
+                            isAr = isAr,
+                            sizeConfig = sizeConfig,
+                            toolbarConfig = toolbarConfig,
+                            onUpdateSizeConfig = viewModel::updateSizeConfig,
+                            onUpdateToolbarConfig = viewModel::updateToolbarVisibility,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable(Routes.BACKUP) {
+                        BackupScreen(
+                            isAr = isAr,
+                            onExportBackup = viewModel::exportBackup,
+                            onImportBackup = viewModel::importBackup,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                     composable(Routes.CLIPBOARD) {
                         ClipboardDictionaryScreen(
                             isAr = isAr,
@@ -503,6 +529,7 @@ private fun BayanAppShell(
                             onResetDictionary = viewModel::resetLearnedDictionary,
                             onExportBackup = viewModel::exportBackup,
                             onImportBackup = viewModel::importBackup,
+                            onOpenBackup = { navigateTo(Routes.BACKUP) },
                             onBack = { navigateTo(Routes.HOME) }
                         )
                     }

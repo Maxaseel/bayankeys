@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -83,6 +84,7 @@ fun ClipboardDictionaryScreen(
     onResetDictionary: () -> Unit,
     onExportBackup: suspend () -> String = { "" },
     onImportBackup: suspend (String) -> Result<Int> = { Result.failure(IllegalArgumentException("Backup unavailable")) },
+    onOpenBackup: () -> Unit = {},
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {}
 ) {
@@ -248,6 +250,7 @@ fun ClipboardDictionaryScreen(
                             showClear = clipboardItems.any { !it.isPinned },
                             onDictionary = { dialog = "dictionary" },
                             onSearch = { dialog = "search" },
+                            onBackup = onOpenBackup,
                             onClear = onClearUnpinned
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,6 +271,7 @@ fun ClipboardDictionaryScreen(
                             showClear = clipboardItems.any { !it.isPinned },
                             onDictionary = { dialog = "dictionary" },
                             onSearch = { dialog = "search" },
+                            onBackup = onOpenBackup,
                             onClear = onClearUnpinned
                         )
                     }
@@ -355,6 +359,7 @@ private fun ClipboardHeaderActions(
     showClear: Boolean,
     onDictionary: () -> Unit,
     onSearch: () -> Unit,
+    onBackup: () -> Unit,
     onClear: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -363,6 +368,9 @@ private fun ClipboardHeaderActions(
         }
         IconButton(onClick = onSearch) {
             Icon(Icons.Rounded.Search, contentDescription = pick(isAr, "فتح البحث", "Search"))
+        }
+        IconButton(onClick = onBackup) {
+            Icon(Icons.Rounded.CloudUpload, contentDescription = pick(isAr, "النسخ الاحتياطي", "Backup"))
         }
         if (showClear) {
             IconButton(onClick = onClear) {

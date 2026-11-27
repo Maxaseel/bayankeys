@@ -788,18 +788,17 @@ private fun KeyboardToolbar(
         customBots.filter { it.isPinnedToToolbar }
     }
     val iconScale = sizeConfig.toolbarIconScale
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.toolbarBackground)
             .padding(horizontal = 6.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         // User-reorderable toolbar actions (horizontal scroll if needed)
         Row(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
