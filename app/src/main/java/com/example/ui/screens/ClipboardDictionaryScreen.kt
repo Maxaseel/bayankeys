@@ -175,6 +175,7 @@ fun ClipboardDictionaryScreen(
                         }
                     }
                     backupMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
+                    Text(pick(isAr, "النسخة تشمل كلمات المرور؛ احفظ الملف في مكان آمن.", "The backup includes passwords; keep the file in a secure place."), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         KeyboardLanguage.entries.forEach { lang ->
                             FilterChip(

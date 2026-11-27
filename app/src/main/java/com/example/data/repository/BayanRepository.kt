@@ -176,10 +176,34 @@ class BayanRepository(
                 })
             }
         }
+        val pinnedClipboardJson = JSONArray().apply {
+            dao.getPinnedClipboardItems().forEach { clip ->
+                put(JSONObject().apply {
+                    put("text", clip.text)
+                    put("timestamp", clip.timestamp)
+                    put("pinOrder", clip.pinOrder)
+                })
+            }
+        }
+        val passwordsJson = JSONArray().apply {
+            dao.getAllPasswordEntries().forEach { entry ->
+                put(JSONObject().apply {
+                    put("siteName", entry.siteName)
+                    put("siteUrl", entry.siteUrl)
+                    put("username", entry.username)
+                    put("password", VaultCryptoHelper.decrypt(entry.encryptedPassword))
+                    put("brandId", entry.brandId)
+                    put("localIconPath", entry.localIconPath ?: JSONObject.NULL)
+                    put("updatedAt", entry.updatedAt)
+                })
+            }
+        }
         JSONObject().apply {
-            put("backupVersion", 1)
+            put("backupVersion", 2)
             put("createdAt", System.currentTimeMillis())
             put("learnedWords", wordsJson)
+            put("pinnedClipboard", pinnedClipboardJson)
+            put("passwords", passwordsJson)
             put("settings", settings.exportSettingsJson())
         }.toString(2)
     }
@@ -200,8 +224,30 @@ class BayanRepository(
             }
             val settingsJson = root.optJSONArray("settings") ?: JSONArray()
             settings.importSettingsJson(settingsJson)
+
+            val pinnedJson = root.optJSONArray("pinnedClipboard") ?: JSONArray()
+            val pinned = buildList {
+                for (index in 0 until pinnedJson.length()) {
+                    val item = pinnedJson.optJSONObject(index) ?: continue
+                    val text = item.optString("text").trim()
+                    if (text.isNotBlank()) add(ClipboardEntity(text = text, timestamp = item.optLong("timestamp", System.currentTimeMillis()), isPinned = true, pinOrder = item.optLong("pinOrder", index.toLong())))
+                }
+            }
+            val passwordsJson = root.optJSONArray("passwords") ?: JSONArray()
+            val passwords = buildList {
+                for (index in 0 until passwordsJson.length()) {
+                    val item = passwordsJson.optJSONObject(index) ?: continue
+                    val siteName = item.optString("siteName").trim()
+                    val username = item.optString("username")
+                    if (siteName.isNotBlank()) add(PasswordEntryEntity(siteName = siteName, siteUrl = item.optString("siteUrl"), username = username, encryptedPassword = VaultCryptoHelper.encrypt(item.optString("password")), brandId = item.optString("brandId", "custom"), localIconPath = item.optString("localIconPath").takeIf { it.isNotBlank() && it != "null" }, updatedAt = item.optLong("updatedAt", System.currentTimeMillis())))
+                }
+            }
             dao.clearAllLearnedWords()
             if (restored.isNotEmpty()) dao.insertWordsIgnore(restored)
+            dao.clearPinnedClipboard()
+            pinned.forEach { dao.insertClipboardItem(it) }
+            dao.clearAllPasswordEntries()
+            passwords.forEach { dao.insertPasswordEntry(it) }
             restored.size
         }
     }

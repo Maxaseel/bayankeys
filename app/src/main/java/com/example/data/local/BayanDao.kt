@@ -37,6 +37,12 @@ interface BayanDao {
     @Query("DELETE FROM clipboard_items WHERE isPinned = 0")
     suspend fun clearUnpinnedClipboard()
 
+    @Query("SELECT * FROM clipboard_items WHERE isPinned = 1 ORDER BY pinOrder ASC, timestamp DESC")
+    suspend fun getPinnedClipboardItems(): List<ClipboardEntity>
+
+    @Query("DELETE FROM clipboard_items WHERE isPinned = 1")
+    suspend fun clearPinnedClipboard()
+
     // --- Learned Words & Suggestions ---
     @Query("SELECT * FROM learned_words ORDER BY isUserAdded DESC, frequency DESC, lastUsedAt DESC")
     fun observeLearnedWords(): Flow<List<LearnedWordEntity>>
@@ -136,6 +142,12 @@ interface BayanDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPasswordEntry(entry: PasswordEntryEntity): Long
+
+    @Query("SELECT * FROM password_entries ORDER BY updatedAt DESC")
+    suspend fun getAllPasswordEntries(): List<PasswordEntryEntity>
+
+    @Query("DELETE FROM password_entries")
+    suspend fun clearAllPasswordEntries()
 
     @Query("DELETE FROM password_entries WHERE id = :id")
     suspend fun deletePasswordEntry(id: Long)
