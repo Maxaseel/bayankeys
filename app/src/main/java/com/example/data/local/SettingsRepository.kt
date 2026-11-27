@@ -45,6 +45,7 @@ class SettingsRepository(private val context: Context) {
 
         // Theme
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         val PRESET_ID = stringPreferencesKey("preset_id")
         val BG_ARGB = longPreferencesKey("bg_argb")
         val KEY_ARGB = longPreferencesKey("key_argb")
@@ -121,6 +122,12 @@ class SettingsRepository(private val context: Context) {
 
     val appUiLanguageFlow: Flow<String> = context.bayanDataStore.data.map { prefs ->
         prefs[Keys.APP_UI_LANG] ?: "ar"
+    }
+
+    val appThemeModeFlow: Flow<ThemeMode> = context.bayanDataStore.data.map { prefs ->
+        prefs[Keys.APP_THEME_MODE]?.let { id ->
+            ThemeMode.entries.firstOrNull { it.id == id }
+        } ?: ThemeMode.SYSTEM
     }
 
     val themeConfigFlow: Flow<KeyboardThemeConfig> = context.bayanDataStore.data.map { prefs ->
@@ -263,6 +270,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setThemeMode(mode: ThemeMode) {
         context.bayanDataStore.edit { it[Keys.THEME_MODE] = mode.id }
+    }
+
+    suspend fun setAppThemeMode(mode: ThemeMode) {
+        context.bayanDataStore.edit { it[Keys.APP_THEME_MODE] = mode.id }
     }
 
     suspend fun applyThemePreset(preset: KeyboardThemePreset) {

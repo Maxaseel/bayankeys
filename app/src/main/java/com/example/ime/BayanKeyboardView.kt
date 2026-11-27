@@ -77,6 +77,7 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -114,6 +115,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.compose.ui.window.Popup
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -332,6 +334,7 @@ fun BayanKeyboardView(
                     sizeConfig = sizeConfig,
                     customBots = customBots,
                     palette = palette,
+                    isArabicUi = isArabicUi,
                     isPreviewMode = isPreviewMode,
                     onQuickToolClick = { tool ->
                         performHaptic()
@@ -773,6 +776,7 @@ private fun KeyboardToolbar(
     sizeConfig: KeyboardSizeConfig,
     customBots: List<CustomBotItem>,
     palette: ResolvedKeyboardPalette,
+    isArabicUi: Boolean,
     isPreviewMode: Boolean,
     onQuickToolClick: (QuickInputTool) -> Unit,
     onProofreadClick: () -> Unit,
@@ -786,8 +790,10 @@ private fun KeyboardToolbar(
     val visibleActions = remember(toolbarConfig) {
         toolbarConfig.order.filter { toolbarConfig.isVisible(it) }
     }
-    val primaryActions = if (sizeConfig.quickToolsSecondRow) visibleActions.filterNot { it.isQuickInputTool } else visibleActions
-    val secondaryActions = if (sizeConfig.quickToolsSecondRow) visibleActions.filter { it.isQuickInputTool } else emptyList()
+    val primaryActions = (if (sizeConfig.quickToolsSecondRow) visibleActions.filterNot { it.isQuickInputTool } else visibleActions)
+        .let { if (isArabicUi) it.asReversed() else it }
+    val secondaryActions = (if (sizeConfig.quickToolsSecondRow) visibleActions.filter { it.isQuickInputTool } else emptyList())
+        .let { if (isArabicUi) it.asReversed() else it }
     val pinnedBots = remember(customBots) {
         customBots.filter { it.isPinnedToToolbar }
     }
@@ -2918,6 +2924,52 @@ private fun KeyboardToolbarCustomizePanel(
                     }
                 }
 
+                item(key = "toolbar_icon_scale_config") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(palette.key)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "حجم أيقونات الشريط الرئيسي",
+                                color = palette.text,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = LocalBayanFontFamily.current,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${(sizeConfig.toolbarIconScale * 100).roundToInt()}%",
+                                color = palette.accent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = LocalBayanFontFamily.current
+                            )
+                        }
+                        Slider(
+                            value = sizeConfig.toolbarIconScale,
+                            onValueChange = { value ->
+                                onUpdateSizeConfig { it.copy(toolbarIconScale = value) }
+                            },
+                            valueRange = 0.7f..1.6f,
+                            steps = 8
+                        )
+                        Text(
+                            text = "كبّر أو صغّر الأيقونات بما يناسبك",
+                            color = palette.text.copy(alpha = 0.65f),
+                            fontSize = 10.sp,
+                            fontFamily = LocalBayanFontFamily.current
+                        )
+                    }
+                }
+
                 // Grid (2 columns) for Toolbar Actions instead of stacked list!
                 items(toolbarRows.size, key = { "tb_grid_row_$it" }) { rowIdx ->
                     val pair = toolbarRows[rowIdx]
@@ -2941,6 +2993,22 @@ private fun KeyboardToolbarCustomizePanel(
                                         color = if (visible) palette.accent.copy(alpha = 0.65f) else palette.text.copy(alpha = 0.1f),
                                         shape = RoundedCornerShape(12.dp)
                                     )
+                                    .pointerInput(action, config.order) {
+                                        var dragDistance = 0f
+                                        detectHorizontalDragGestures(
+                                            onHorizontalDrag = { _, dragAmount ->
+                                                dragDistance += dragAmount
+                                            },
+                                            onDragEnd = {
+                                                if (kotlin.math.abs(dragDistance) > 36f) {
+                                                    onUpdateToolbar {
+                                                        it.moveAction(action, if (dragDistance > 0) 1 else -1)
+                                                    }
+                                                }
+                                            },
+                                            onDragCancel = { dragDistance = 0f }
+                                        )
+                                    }
                                     .clickable {
                                         onUpdateToolbar { it.withVisibility(action, !visible) }
                                     }

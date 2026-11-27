@@ -78,6 +78,9 @@ class BayanViewModel(
     val appUiLanguage: StateFlow<String> = settings.appUiLanguageFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "ar")
 
+    val appThemeMode: StateFlow<ThemeMode> = settings.appThemeModeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
+
     val themeConfig: StateFlow<KeyboardThemeConfig> = settings.themeConfigFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KeyboardThemeConfig())
 
@@ -478,6 +481,10 @@ class BayanViewModel(
     }
 
     // Theme & Sizing
+    fun setAppThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settings.setAppThemeMode(mode) }
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settings.setThemeMode(mode) }
     }

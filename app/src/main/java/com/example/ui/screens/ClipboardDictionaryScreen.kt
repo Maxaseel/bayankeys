@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -395,7 +397,20 @@ private fun ClipCard(
         shape = RoundedCornerShape(16.dp),
         color = if (pinned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         border = BorderStroke(if (pinned) 1.5.dp else 1.dp, if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
-        modifier = modifier
+        modifier = modifier.pointerInput(pinned, clip.id) {
+            if (pinned) {
+                var dragDistance = 0f
+                detectVerticalDragGestures(
+                    onVerticalDrag = { _, dragAmount -> dragDistance += dragAmount },
+                    onDragEnd = {
+                        if (kotlin.math.abs(dragDistance) > 36f) {
+                            onMove(if (dragDistance > 0) 1 else -1)
+                        }
+                    },
+                    onDragCancel = { dragDistance = 0f }
+                )
+            }
+        }
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (pinned) Text(pick(isAr, "مثبت", "Pinned"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)

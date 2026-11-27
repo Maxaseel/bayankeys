@@ -70,6 +70,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.data.model.CustomBotItem
+import com.example.data.model.ThemeMode
 import com.example.ui.AppStrings.pick
 import com.example.ui.BayanViewModel
 import com.example.ui.components.ProvideSafeTextToolbar
@@ -138,6 +139,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val appUiLang by viewModel.appUiLanguage.collectAsStateWithLifecycle()
+            val appThemeMode by viewModel.appThemeMode.collectAsStateWithLifecycle()
             val themeConfig by viewModel.themeConfig.collectAsStateWithLifecycle()
             val pendingMic by pendingMicRequest.collectAsStateWithLifecycle()
             val openPasswords by pendingOpenPasswords.collectAsStateWithLifecycle()
@@ -147,7 +149,7 @@ class MainActivity : ComponentActivity() {
             val isAr = appUiLang == "ar"
 
             BayanTheme(
-                themeMode = themeConfig.themeMode,
+                themeMode = appThemeMode,
                 customAccentColor = Color(themeConfig.accentArgb),
                 fontStyle = themeConfig.fontStyle
             ) {
@@ -258,8 +260,13 @@ private fun BayanAppShell(
     val imeStatus by viewModel.imeStatus.collectAsStateWithLifecycle()
     val aiConfig by viewModel.aiConfig.collectAsStateWithLifecycle()
     val themeConfig by viewModel.themeConfig.collectAsStateWithLifecycle()
+    val appThemeMode by viewModel.appThemeMode.collectAsStateWithLifecycle()
     val systemDark = isSystemInDarkTheme()
-    val effectiveDark = themeConfig.resolvePalette(systemDark).isDark
+    val effectiveDark = when (appThemeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> systemDark
+    }
     val sizeConfig by viewModel.sizeConfig.collectAsStateWithLifecycle()
     val toolbarConfig by viewModel.toolbarVisibility.collectAsStateWithLifecycle()
     val gradualPasteConfig by viewModel.gradualPasteConfig.collectAsStateWithLifecycle()
@@ -340,7 +347,7 @@ private fun BayanAppShell(
                             onClick = {
                                 textToolbar.hide()
                                 focusManager.clearFocus(force = true)
-                                viewModel.setThemeMode(if (effectiveDark) com.example.data.model.ThemeMode.LIGHT else com.example.data.model.ThemeMode.DARK)
+                                viewModel.setAppThemeMode(if (effectiveDark) ThemeMode.LIGHT else ThemeMode.DARK)
                             },
                             modifier = Modifier.testTag("theme_mode_toggle")
                         ) {
