@@ -26,6 +26,8 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
@@ -68,6 +70,7 @@ fun ClipboardDictionaryScreen(
     onAddManualClip: (String, Boolean) -> Unit,
     onTogglePinClip: (ClipboardEntity) -> Unit,
     onDeleteClip: (Long) -> Unit,
+    onMovePinnedClip: (ClipboardEntity, Int) -> Unit = { _, _ -> },
     onClearUnpinned: () -> Unit,
     onAddCustomWord: (String, KeyboardLanguage) -> Unit,
     onDeleteLearnedWord: (String, String) -> Unit,
@@ -147,15 +150,16 @@ fun ClipboardDictionaryScreen(
                         if (newWordText.isNotBlank()) onAddCustomWord(newWordText, newWordLang)
                         newWordText = ""
                     }) { Icon(Icons.Rounded.Add, contentDescription = null); Text(pick(isAr, "إضافة كلمة", "Add word")) }
-                    TextButton(onClick = { dialog = "reset" }) { Text(pick(isAr, "إعادة ضبط القاموس", "Reset dictionary")) }
-                    learnedWords.take(20).forEach { word ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${word.word}  ·  ${word.languageCode}", modifier = Modifier.weight(1f))
-                            IconButton(onClick = { onDeleteLearnedWord(word.word, word.languageCode) }) {
-                                Icon(Icons.Rounded.DeleteOutline, contentDescription = pick(isAr, "حذف", "Delete"))
-                            }
-                        }
-                    }
+                    Text(
+                        pick(
+                            isAr,
+                            "الكلمات التي يتعلمها التطبيق محفوظة داخليًا للاقتراحات ولا تُعرض هنا.",
+                            "Words learned from typing are kept privately for suggestions and are not displayed here."
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = { dialog = "reset" }) { Text(pick(isAr, "مسح الذاكرة المتعلمة", "Clear learned memory")) }
                 }
             },
             confirmButton = { TextButton(onClick = { dialog = "" }) { Text(pick(isAr, "إغلاق", "Close")) } }
@@ -289,6 +293,7 @@ fun ClipboardDictionaryScreen(
                             onPin = { onTogglePinClip(clip) },
                             onCopy = { clipboard.setText(AnnotatedString(clip.text)) },
                             onDelete = { onDeleteClip(clip.id) },
+                            onMove = { direction -> onMovePinnedClip(clip, direction) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -330,6 +335,7 @@ private fun ClipCard(
     onPin: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit,
+    onMove: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -344,6 +350,10 @@ private fun ClipCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onPin, modifier = Modifier.size(34.dp)) {
                     Icon(Icons.Rounded.PushPin, contentDescription = pick(isAr, if (pinned) "إلغاء التثبيت" else "تثبيت", if (pinned) "Unpin" else "Pin"), tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
+                if (pinned) {
+                    IconButton(onClick = { onMove(-1) }, modifier = Modifier.size(34.dp)) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up", modifier = Modifier.size(18.dp)) }
+                    IconButton(onClick = { onMove(1) }, modifier = Modifier.size(34.dp)) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move down", modifier = Modifier.size(18.dp)) }
                 }
                 IconButton(onClick = onCopy, modifier = Modifier.size(34.dp)) {
                     Icon(Icons.Rounded.ContentCopy, contentDescription = pick(isAr, "نسخ", "Copy"), modifier = Modifier.size(18.dp))
