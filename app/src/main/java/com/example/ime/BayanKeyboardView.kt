@@ -165,6 +165,8 @@ import com.example.data.model.ResolvedKeyboardPalette
 import com.example.data.model.TargetTranslateLanguage
 import com.example.data.model.ToolbarAction
 import com.example.data.model.ToolbarVisibilityConfig
+import com.example.data.model.isQuickInputTool
+import com.example.data.model.quickInputTool
 import com.example.data.repository.SuggestionCandidate
 import com.example.ui.components.GradualPasteSettingsSection
 import com.example.ui.components.KeyButtonShapeGrid
@@ -331,6 +333,10 @@ fun BayanKeyboardView(
                     customBots = customBots,
                     palette = palette,
                     isPreviewMode = isPreviewMode,
+                    onQuickToolClick = { tool ->
+                        performHaptic()
+                        onQuickToolClick(tool)
+                    },
                     onProofreadClick = {
                         performHaptic()
                         onProofreadClick()
@@ -768,6 +774,7 @@ private fun KeyboardToolbar(
     customBots: List<CustomBotItem>,
     palette: ResolvedKeyboardPalette,
     isPreviewMode: Boolean,
+    onQuickToolClick: (QuickInputTool) -> Unit,
     onProofreadClick: () -> Unit,
     onRunCustomBot: (CustomBotItem) -> Unit,
     onVoiceClick: () -> Unit,
@@ -779,17 +786,22 @@ private fun KeyboardToolbar(
     val visibleActions = remember(toolbarConfig) {
         toolbarConfig.order.filter { toolbarConfig.isVisible(it) }
     }
+    val primaryActions = if (sizeConfig.quickToolsSecondRow) visibleActions.filterNot { it.isQuickInputTool } else visibleActions
+    val secondaryActions = if (sizeConfig.quickToolsSecondRow) visibleActions.filter { it.isQuickInputTool } else emptyList()
     val pinnedBots = remember(customBots) {
         customBots.filter { it.isPinnedToToolbar }
     }
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.toolbarBackground)
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+            .padding(vertical = 3.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
         // User-reorderable toolbar actions (horizontal scroll if needed)
         Row(
             modifier = Modifier
@@ -798,7 +810,7 @@ private fun KeyboardToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            visibleActions.forEach { action ->
+            primaryActions.forEach { action ->
                 when (action) {
                     ToolbarAction.PROOFREAD -> {
                         Surface(
@@ -1008,6 +1020,17 @@ private fun KeyboardToolbar(
                             onClick = onOpenSettings
                         )
                     }
+                    else -> {
+                        action.quickInputTool()?.let { tool ->
+                            ToolbarQuickToolButton(
+                                tool = tool,
+                                palette = palette,
+                                isPreviewMode = isPreviewMode,
+                                iconScale = sizeConfig.toolbarIconScale,
+                                onClick = { onQuickToolClick(tool) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1075,6 +1098,60 @@ private fun KeyboardToolbar(
                     else KeyboardPanel.TOOLBAR_CUSTOMIZE
                 )
             }
+        )
+        }
+        if (secondaryActions.isNotEmpty()) {
+            KeyboardQuickToolbarRow(
+                actions = secondaryActions,
+                palette = palette,
+                isPreviewMode = isPreviewMode,
+                iconScale = sizeConfig.toolbarIconScale,
+                onQuickToolClick = onQuickToolClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeyboardQuickToolbarRow(
+    actions: List<ToolbarAction>,
+    palette: ResolvedKeyboardPalette,
+    isPreviewMode: Boolean,
+    iconScale: Float,
+    onQuickToolClick: (QuickInputTool) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        actions.forEach { action ->
+            action.quickInputTool()?.let { tool ->
+                ToolbarQuickToolButton(tool, palette, isPreviewMode, iconScale) { onQuickToolClick(tool) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolbarQuickToolButton(
+    tool: QuickInputTool,
+    palette: ResolvedKeyboardPalette,
+    isPreviewMode: Boolean,
+    iconScale: Float,
+    onClick: () -> Unit
+) {
+    val buttonSize = if (isPreviewMode) 28.dp else 34.dp
+    Box(
+        modifier = Modifier.size(buttonSize).clip(RoundedCornerShape(9.dp))
+            .background(palette.specialKey).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = quickToolIcon(tool),
+            contentDescription = tool.labelEn,
+            tint = palette.text.copy(alpha = 0.85f),
+            modifier = Modifier.size((if (isPreviewMode) 15f else 18f).dp * iconScale)
         )
     }
 }
@@ -2799,6 +2876,44 @@ private fun KeyboardToolbarCustomizePanel(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                item(key = "quick_tools_second_row_config") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(palette.key)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "شريط ثانٍ لأدوات الإدخال والتحرير",
+                                    color = palette.text,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = LocalBayanFontFamily.current
+                                )
+                                Text(
+                                    text = "عند التفعيل تظهر الأدوات المختارة في صف مستقل أسفل الشريط الرئيسي",
+                                    color = palette.text.copy(alpha = 0.65f),
+                                    fontSize = 10.sp,
+                                    fontFamily = LocalBayanFontFamily.current
+                                )
+                            }
+                            Switch(
+                                checked = sizeConfig.quickToolsSecondRow,
+                                onCheckedChange = { checked ->
+                                    onUpdateSizeConfig { it.copy(quickToolsSecondRow = checked) }
+                                }
+                            )
                         }
                     }
                 }

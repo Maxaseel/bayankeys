@@ -565,6 +565,7 @@ data class KeyboardSizeConfig(
     val heightScale: Float = 1.0f,
     val fontScale: Float = 1.0f,
     val toolbarIconScale: Float = 1.0f,
+    val quickToolsSecondRow: Boolean = false,
     val bottomPaddingDp: Float = 6f,
     val showNumberRow: Boolean = true,
     val numberRowStyle: NumberRowStyle = NumberRowStyle.WESTERN,
@@ -617,7 +618,37 @@ enum class ToolbarAction(
     PASSWORDS("passwords", "مدير كلمات المرور", "Passwords"),
     TRANSLATE("translate", "الترجمة", "Translate"),
     EMOJI("emoji", "الرموز التعبيرية", "Emoji"),
-    SETTINGS("settings", "الإعدادات", "Settings");
+    SETTINGS("settings", "الإعدادات", "Settings"),
+    TOOL_SELECT_ALL("quick_select_all", "تحديد الكل", "Select All"),
+    TOOL_DESELECT_ALL("quick_deselect_all", "إلغاء تحديد الكل", "Deselect All"),
+    TOOL_SELECT_WORD("quick_select_word", "اختيار كلمة", "Select Word"),
+    TOOL_COPY("quick_copy", "نسخ", "Copy"),
+    TOOL_CUT("quick_cut", "قصّ", "Cut"),
+    TOOL_PASTE("quick_paste", "لصق", "Paste"),
+    TOOL_UNDO("quick_undo", "تراجع", "Undo"),
+    TOOL_REDO("quick_redo", "إعادة", "Redo"),
+    TOOL_CLEAR_CLIPBOARD("quick_clear_clipboard", "مسح الحافظة", "Clear Clipboard"),
+    TOOL_CURSOR_LEFT("quick_cursor_left", "المؤشر يسارًا", "Cursor Left"),
+    TOOL_CURSOR_RIGHT("quick_cursor_right", "المؤشر يمينًا", "Cursor Right"),
+    TOOL_CURSOR_UP("quick_cursor_up", "المؤشر للأعلى", "Cursor Up"),
+    TOOL_CURSOR_DOWN("quick_cursor_down", "المؤشر للأسفل", "Cursor Down"),
+    TOOL_WORD_LEFT("quick_word_left", "كلمة لليسار", "Word Left"),
+    TOOL_WORD_RIGHT("quick_word_right", "كلمة لليمين", "Word Right"),
+    TOOL_LINE_START("quick_line_start", "بداية السطر", "Line Start"),
+    TOOL_LINE_END("quick_line_end", "نهاية السطر", "Line End"),
+    TOOL_PAGE_UP("quick_page_up", "صفحة لأعلى", "Page Up"),
+    TOOL_PAGE_DOWN("quick_page_down", "صفحة لأسفل", "Page Down"),
+    TOOL_DOC_START("quick_doc_start", "بداية المستند", "Document Start"),
+    TOOL_DOC_END("quick_doc_end", "نهاية المستند", "Document End"),
+    TOOL_NUMPAD("quick_numpad", "لوحة الأرقام", "Number Pad"),
+    TOOL_ONE_HANDED("quick_one_handed", "بيد واحدة", "One-Handed"),
+    TOOL_SPLIT_KEYBOARD("quick_split_keyboard", "لوحة مقسمة", "Split Keyboard"),
+    TOOL_INCOGNITO("quick_incognito", "الوضع المتخفي", "Incognito"),
+    TOOL_AUTO_CORRECT("quick_auto_correct", "تصحيح تلقائي", "Auto-Correct"),
+    TOOL_VOICE_INPUT("quick_voice_input", "إدخال صوتي", "Voice Input"),
+    TOOL_CLIPBOARD("quick_clipboard", "الحافظة", "Clipboard"),
+    TOOL_EMOJI("quick_emoji", "الإيموجي", "Emoji"),
+    TOOL_SETTINGS("quick_settings", "إعدادات اللوحة", "Keyboard Settings");
 
     companion object {
         fun fromId(id: String?): ToolbarAction? = entries.firstOrNull { it.id == id }
@@ -627,6 +658,14 @@ enum class ToolbarAction(
         )
     }
 }
+
+fun ToolbarAction.quickInputTool(): QuickInputTool? =
+    id.removePrefix("quick_").let { toolId ->
+        QuickInputTool.entries.firstOrNull { it.id == toolId }
+    }
+
+val ToolbarAction.isQuickInputTool: Boolean
+    get() = quickInputTool() != null
 
 data class ToolbarVisibilityConfig(
     val order: List<ToolbarAction> = ToolbarAction.defaultOrder(),

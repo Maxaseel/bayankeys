@@ -200,12 +200,16 @@ class BayanRepository(
             }
         }
         JSONObject().apply {
-            put("backupVersion", 2)
+            put("backupVersion", 3)
             put("createdAt", System.currentTimeMillis())
             put("learnedWords", wordsJson)
             put("pinnedClipboard", pinnedClipboardJson)
             put("passwords", passwordsJson)
-            put("settings", settings.exportSettingsJson())
+            // Keep the generic settings payload for backward compatibility and expose
+            // the complete keyboard customization payload explicitly for newer clients.
+            val settingsJson = settings.exportSettingsJson()
+            put("settings", settingsJson)
+            put("keyboardSettings", settingsJson)
         }.toString(2)
     }
 
@@ -223,7 +227,9 @@ class BayanRepository(
                     }
                 }
             }
-            val settingsJson = root.optJSONArray("settings") ?: JSONArray()
+            val settingsJson = root.optJSONArray("settings")
+                ?: root.optJSONArray("keyboardSettings")
+                ?: JSONArray()
             settings.importSettingsJson(settingsJson)
 
             val pinnedJson = root.optJSONArray("pinnedClipboard") ?: JSONArray()

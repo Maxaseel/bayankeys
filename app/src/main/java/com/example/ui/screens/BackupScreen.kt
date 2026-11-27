@@ -71,7 +71,7 @@ fun BackupScreen(
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.CloudUpload, contentDescription = null)
                 Text(pick(isAr, "النسخ الاحتياطي والاستعادة", "Backup and restore"), style = MaterialTheme.typography.titleLarge)
-                Text(pick(isAr, "يحفظ كلمات المرور والنصوص المثبتة وترتيبها والكلمات المتعلمة وإعدادات التطبيق وشريط لوحة المفاتيح.", "Saves passwords, pinned clipboard text and order, learned words, app settings, and keyboard toolbar settings."))
+                Text(pick(isAr, "يحفظ كلمات المرور والنصوص المثبتة وترتيبها والكلمات المتعلمة والتخصيص الكامل للوحة المفاتيح، بما في ذلك الثيم وحجم الأيقونات وأزرار الشريط.", "Saves passwords, pinned clipboard text and order, learned words, and complete keyboard customization including theme, icon size, and toolbar buttons."))
             }
         }
         Button(onClick = { exportLauncher.launch("bayan-keys-backup.json") }, modifier = Modifier.fillMaxWidth()) {

@@ -27,6 +27,7 @@ import com.example.data.model.TargetTranslateLanguage
 import com.example.data.model.ThemeMode
 import com.example.data.model.ToolbarAction
 import com.example.data.model.ToolbarVisibilityConfig
+import com.example.data.model.isQuickInputTool
 import com.example.data.model.TranslationProviderType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -72,6 +73,7 @@ class SettingsRepository(private val context: Context) {
         val HEIGHT_SCALE = floatPreferencesKey("height_scale")
         val FONT_SCALE = floatPreferencesKey("font_scale")
         val TOOLBAR_ICON_SCALE = floatPreferencesKey("toolbar_icon_scale")
+        val QUICK_TOOLS_SECOND_ROW = booleanPreferencesKey("quick_tools_second_row")
         val BOTTOM_PADDING = floatPreferencesKey("bottom_padding")
         val SHOW_NUMBER_ROW = booleanPreferencesKey("show_number_row")
         val NUMBER_ROW_STYLE = stringPreferencesKey("number_row_style")
@@ -159,6 +161,7 @@ class SettingsRepository(private val context: Context) {
             heightScale = prefs[Keys.HEIGHT_SCALE] ?: 1.0f,
             fontScale = prefs[Keys.FONT_SCALE] ?: 1.0f,
             toolbarIconScale = (prefs[Keys.TOOLBAR_ICON_SCALE] ?: 1.0f).coerceIn(0.75f, 1.5f),
+            quickToolsSecondRow = prefs[Keys.QUICK_TOOLS_SECOND_ROW] ?: false,
             bottomPaddingDp = prefs[Keys.BOTTOM_PADDING] ?: 6f,
             showNumberRow = prefs[Keys.SHOW_NUMBER_ROW] ?: true,
             numberRowStyle = NumberRowStyle.fromId(prefs[Keys.NUMBER_ROW_STYLE]),
@@ -217,10 +220,10 @@ class SettingsRepository(private val context: Context) {
     val toolbarVisibilityFlow: Flow<ToolbarVisibilityConfig> = context.bayanDataStore.data.map { prefs ->
         val rawOrder = prefs[Keys.TB_ORDER]
         val parsedOrder = if (rawOrder.isNullOrBlank()) {
-            ToolbarAction.defaultOrder()
+            ToolbarAction.defaultOrder() + ToolbarAction.entries.filter { it.isQuickInputTool }
         } else {
             val saved = rawOrder.split(",").mapNotNull { ToolbarAction.fromId(it.trim()) }.distinct()
-            val missing = ToolbarAction.defaultOrder().filter { it !in saved }
+            val missing = ToolbarAction.entries.filter { it !in saved }
             saved + missing
         }
         val rawHidden = prefs[Keys.TB_HIDDEN]
@@ -237,6 +240,8 @@ class SettingsRepository(private val context: Context) {
                 if (prefs[Keys.TB_SHOW_TRANSLATE] == false) add(ToolbarAction.TRANSLATE)
                 if (prefs[Keys.TB_SHOW_EMOJI] == false) add(ToolbarAction.EMOJI)
                 if (prefs[Keys.TB_SHOW_SETTINGS] == false) add(ToolbarAction.SETTINGS)
+                ToolbarAction.entries.filter { it.isQuickInputTool && (rawOrder.isNullOrBlank() || !rawOrder.split(",").contains(it.id)) }
+                    .forEach(::add)
             }
         }
         ToolbarVisibilityConfig(
@@ -302,6 +307,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.HEIGHT_SCALE] = next.heightScale.coerceIn(0.78f, 1.35f)
             prefs[Keys.FONT_SCALE] = next.fontScale.coerceIn(0.85f, 1.30f)
             prefs[Keys.TOOLBAR_ICON_SCALE] = next.toolbarIconScale.coerceIn(0.75f, 1.5f)
+            prefs[Keys.QUICK_TOOLS_SECOND_ROW] = next.quickToolsSecondRow
             prefs[Keys.BOTTOM_PADDING] = next.bottomPaddingDp.coerceIn(0f, 32f)
             prefs[Keys.SHOW_NUMBER_ROW] = next.showNumberRow
             prefs[Keys.NUMBER_ROW_STYLE] = next.numberRowStyle.id
