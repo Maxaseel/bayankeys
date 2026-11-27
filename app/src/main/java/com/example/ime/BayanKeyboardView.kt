@@ -126,6 +126,7 @@ import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.automirrored.rounded.LastPage
 import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.rounded.BackHand
+import androidx.compose.material.icons.rounded.CheckBoxOutlineBlank
 import androidx.compose.material.icons.rounded.ContentCut
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Dialpad
@@ -614,6 +615,7 @@ fun BayanKeyboardView(
                         selected = state.targetTranslateLang,
                         palette = palette,
                         height = panelHeight,
+                        isArabicUi = isArabicUi,
                         onSelect = {
                             performHaptic()
                             onSelectTranslateTarget(it)
@@ -2096,6 +2098,93 @@ private fun EmojiCategoryTab(
 }
 
 @Composable
+private fun InlineSearchKeyboard(
+    query: String,
+    isArabicInitial: Boolean,
+    palette: ResolvedKeyboardPalette,
+    onQueryChange: (String) -> Unit,
+    onDone: () -> Unit
+) {
+    var isArabicLayout by remember(isArabicInitial) { mutableStateOf(isArabicInitial) }
+    val rows = if (isArabicLayout) {
+        listOf(
+            listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج"),
+            listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"),
+            listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "د")
+        )
+    } else {
+        listOf(
+            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
+            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
+            listOf("z", "x", "c", "v", "b", "n", "m")
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        rows.forEach { rowKeys ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                rowKeys.forEach { key ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(palette.key)
+                            .clickable { onQueryChange(query + key) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = key, color = palette.text, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            SearchKeyboardActionKey("⌫", palette, Modifier.weight(1f)) {
+                if (query.isNotEmpty()) onQueryChange(query.dropLast(1))
+            }
+            SearchKeyboardActionKey(if (isArabicLayout) "مسافة" else "Space", palette, Modifier.weight(2.5f)) {
+                onQueryChange(if (query.endsWith(' ')) query else "$query ")
+            }
+            SearchKeyboardActionKey(if (isArabicLayout) "EN" else "ع", palette, Modifier.weight(1f)) {
+                isArabicLayout = !isArabicLayout
+            }
+            SearchKeyboardActionKey(if (isArabicLayout) "تم" else "Done", palette, Modifier.weight(1.4f), onClick = onDone)
+        }
+    }
+}
+
+@Composable
+private fun SearchKeyboardActionKey(
+    label: String,
+    palette: ResolvedKeyboardPalette,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(palette.specialKey)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = palette.text,
+            fontSize = if (label.length > 2) 9.sp else 11.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
 private fun KeyboardEmojiPanel(
     palette: ResolvedKeyboardPalette,
     height: Dp,
@@ -2122,6 +2211,7 @@ private fun KeyboardEmojiPanel(
     var selectedCategoryId by remember { mutableStateOf("recent") }
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var searchKeyboardVisible by remember { mutableStateOf(false) }
     val allEmojis = remember(categories) { categories.flatMap { it.emojis } }
     val emojiByValue = remember(allEmojis) { allEmojis.associateBy { it.value } }
     val recentSnapshot = recentEmojis.toList()
@@ -2132,7 +2222,10 @@ private fun KeyboardEmojiPanel(
     val visibleEmojis = remember(categories, allEmojis, emojiByValue, selectedCategoryId, query, recentSnapshot) {
         when {
             query.isNotEmpty() -> allEmojis.filter {
-                it.value.contains(query) || it.name.contains(query, ignoreCase = true)
+                it.value.contains(query) ||
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.nameAr.contains(query, ignoreCase = true) ||
+                    it.searchTermsAr.contains(query, ignoreCase = true)
             }
             selectedCategoryId == "recent" -> recentSnapshot.mapNotNull { emojiByValue[it] }
                 .ifEmpty { categories.firstOrNull()?.emojis?.take(42).orEmpty() }
@@ -2153,6 +2246,7 @@ private fun KeyboardEmojiPanel(
         selectedCategoryId = categoryId
         searchQuery = ""
         searchActive = false
+        searchKeyboardVisible = false
     }
 
     Column(
@@ -2186,8 +2280,9 @@ private fun KeyboardEmojiPanel(
                     }
                     BasicTextField(
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        onValueChange = {},
                         singleLine = true,
+                        readOnly = true,
                         textStyle = TextStyle(color = palette.text, fontSize = 14.sp),
                         cursorBrush = SolidColor(palette.accent),
                         modifier = Modifier.fillMaxWidth()
@@ -2219,7 +2314,12 @@ private fun KeyboardEmojiPanel(
                     .background(palette.specialKey)
                     .clickable {
                         searchActive = !searchActive
-                        if (!searchActive) searchQuery = ""
+                        if (searchActive) {
+                            searchKeyboardVisible = true
+                        } else {
+                            searchQuery = ""
+                            searchKeyboardVisible = false
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -2229,6 +2329,24 @@ private fun KeyboardEmojiPanel(
                     tint = palette.text,
                     modifier = Modifier.size(20.dp)
                 )
+            }
+            if (searchActive) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(palette.specialKey)
+                        .clickable { searchKeyboardVisible = !searchKeyboardVisible },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (searchKeyboardVisible) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                        contentDescription = if (searchKeyboardVisible) "Hide search keys" else "Show search keys",
+                        tint = palette.text,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(6.dp))
             Box(
@@ -2249,6 +2367,16 @@ private fun KeyboardEmojiPanel(
         }
 
         Spacer(modifier = Modifier.height(4.dp))
+        if (searchActive && searchKeyboardVisible) {
+            InlineSearchKeyboard(
+                query = searchQuery,
+                isArabicInitial = isArabicUi,
+                palette = palette,
+                onQueryChange = { searchQuery = it },
+                onDone = { searchKeyboardVisible = false }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        }
         if (visibleEmojis.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -2285,30 +2413,32 @@ private fun KeyboardEmojiPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            EmojiCategoryTab("ABC", selected = false, palette = palette, onClick = onClose)
-            EmojiCategoryTab(
-                label = "🕘",
-                selected = selectedCategoryId == "recent" && query.isEmpty(),
-                palette = palette,
-                onClick = { selectCategory("recent") }
-            )
-            categories.forEach { category ->
+        if (!searchActive) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                EmojiCategoryTab("ABC", selected = false, palette = palette, onClick = onClose)
                 EmojiCategoryTab(
-                    label = category.icon,
-                    selected = selectedCategoryId == category.id && query.isEmpty(),
+                    label = "🕘",
+                    selected = selectedCategoryId == "recent" && query.isEmpty(),
                     palette = palette,
-                    onClick = { selectCategory(category.id) }
+                    onClick = { selectCategory("recent") }
                 )
+                categories.forEach { category ->
+                    EmojiCategoryTab(
+                        label = category.icon,
+                        selected = selectedCategoryId == category.id && query.isEmpty(),
+                        palette = palette,
+                        onClick = { selectCategory(category.id) }
+                    )
+                }
+                EmojiCategoryTab("⌫", selected = false, palette = palette, onClick = onBackspace)
             }
-            EmojiCategoryTab("⌫", selected = false, palette = palette, onClick = onBackspace)
         }
     }
 }
@@ -2318,14 +2448,26 @@ private fun KeyboardTranslateTargetPanel(
     selected: TargetTranslateLanguage,
     palette: ResolvedKeyboardPalette,
     height: Dp,
+    isArabicUi: Boolean,
     onSelect: (TargetTranslateLanguage) -> Unit,
     onClose: () -> Unit
 ) {
     var showAllLanguages by remember(selected) { mutableStateOf(false) }
-    val visibleLanguages = remember(selected, showAllLanguages) {
-        val candidates = if (showAllLanguages) TargetTranslateLanguage.entries
+    var searchQuery by remember(selected) { mutableStateOf("") }
+    var searchKeyboardVisible by remember(selected) { mutableStateOf(false) }
+    val normalizedQuery = searchQuery.trim()
+    val visibleLanguages = remember(selected, showAllLanguages, normalizedQuery) {
+        val candidates = if (showAllLanguages || normalizedQuery.isNotEmpty()) TargetTranslateLanguage.entries
         else TargetTranslateLanguage.quickChoices
-        listOf(selected) + candidates.filterNot { it == selected }
+        if (normalizedQuery.isEmpty()) {
+            listOf(selected) + candidates.filterNot { it == selected }
+        } else {
+            candidates.filter { language ->
+                language.labelAr.contains(normalizedQuery, ignoreCase = true) ||
+                    language.labelEn.contains(normalizedQuery, ignoreCase = true) ||
+                    language.code.contains(normalizedQuery, ignoreCase = true)
+            }
+        }
     }
     Column(
         modifier = Modifier
@@ -2387,50 +2529,125 @@ private fun KeyboardTranslateTargetPanel(
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(palette.key)
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            items(visibleLanguages) { lang ->
-                val isSelected = lang == selected
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isSelected) palette.accent else palette.key)
-                        .border(
-                            width = 0.7.dp,
-                            color = if (isSelected) palette.accent else palette.text.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable { onSelect(lang) }
-                        .padding(horizontal = 10.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = lang.flagEmoji,
-                        fontSize = 18.sp
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = "Show language search keys",
+                    tint = palette.text.copy(alpha = 0.65f),
+                    modifier = Modifier.size(17.dp).clickable { searchKeyboardVisible = true }
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    if (searchQuery.isEmpty()) {
                         Text(
-                            text = lang.labelAr,
-                            color = if (isSelected) Color.White else palette.text,
+                            text = "ابحث باسم اللغة أو Search language",
+                            color = palette.text.copy(alpha = 0.55f),
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = LocalBayanFontFamily.current,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            fontFamily = LocalBayanFontFamily.current
                         )
-                        Text(
-                            text = lang.labelEn,
-                            color = if (isSelected) Color.White.copy(alpha = 0.85f) else palette.text.copy(alpha = 0.65f),
-                            fontSize = 10.sp,
-                            fontFamily = LocalBayanFontFamily.current,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    }
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = {},
+                        singleLine = true,
+                        readOnly = true,
+                        textStyle = TextStyle(color = palette.text, fontSize = 12.sp),
+                        cursorBrush = SolidColor(palette.accent),
+                        modifier = Modifier.fillMaxWidth().clickable { searchKeyboardVisible = true }
+                    )
+                }
+                if (searchQuery.isNotEmpty()) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Clear search",
+                        tint = palette.text.copy(alpha = 0.7f),
+                        modifier = Modifier.size(17.dp).clickable { searchQuery = "" }
+                    )
+                }
+                Icon(
+                    imageVector = if (searchKeyboardVisible) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                    contentDescription = if (searchKeyboardVisible) "Hide search keys" else "Show search keys",
+                    tint = palette.text.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp).clickable { searchKeyboardVisible = !searchKeyboardVisible }
+                )
+            }
+        }
+        if (searchKeyboardVisible) {
+            Spacer(modifier = Modifier.height(5.dp))
+            InlineSearchKeyboard(
+                query = searchQuery,
+                isArabicInitial = isArabicUi,
+                palette = palette,
+                onQueryChange = { searchQuery = it },
+                onDone = { searchKeyboardVisible = false }
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        if (visibleLanguages.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "لا توجد لغة مطابقة • No matching languages",
+                    color = palette.text.copy(alpha = 0.65f),
+                    fontSize = 12.sp,
+                    fontFamily = LocalBayanFontFamily.current,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(visibleLanguages) { lang ->
+                    val isSelected = lang == selected
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) palette.accent else palette.key)
+                            .border(
+                                width = 0.7.dp,
+                                color = if (isSelected) palette.accent else palette.text.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable { onSelect(lang) }
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = lang.flagEmoji, fontSize = 18.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = lang.labelAr,
+                                color = if (isSelected) Color.White else palette.text,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = LocalBayanFontFamily.current,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = lang.labelEn,
+                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else palette.text.copy(alpha = 0.65f),
+                                fontSize = 10.sp,
+                                fontFamily = LocalBayanFontFamily.current,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -3158,6 +3375,7 @@ private fun KeyboardQuickToolsPanel(
 
 private fun quickToolIcon(tool: QuickInputTool): ImageVector = when (tool) {
     QuickInputTool.SELECT_ALL -> Icons.Rounded.SelectAll
+    QuickInputTool.DESELECT_ALL -> Icons.Rounded.CheckBoxOutlineBlank
     QuickInputTool.SELECT_WORD -> Icons.Rounded.TextFields
     QuickInputTool.COPY -> Icons.Rounded.ContentCopy
     QuickInputTool.CUT -> Icons.Rounded.ContentCut

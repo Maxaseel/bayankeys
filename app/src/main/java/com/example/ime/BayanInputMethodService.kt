@@ -1351,6 +1351,26 @@ class BayanInputMethodService :
                     if (extracted != null) ic.setSelection(0, extracted.length)
                 }
             }
+            QuickInputTool.DESELECT_ALL -> {
+                val selectedText = ic?.getSelectedText(0)?.toString()
+                ic?.finishComposingText()
+                composingWord.clear()
+                if (ic != null && !selectedText.isNullOrEmpty()) {
+                    val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
+                    val textLength = extracted?.text?.length
+                    if (extracted != null && textLength != null &&
+                        extracted.selectionStart >= 0 && extracted.selectionEnd >= 0
+                    ) {
+                        val cursor = maxOf(extracted.selectionStart, extracted.selectionEnd)
+                            .coerceIn(0, textLength)
+                        ic.setSelection(cursor, cursor)
+                    } else {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT))
+                    }
+                    showTransientStatus(if (isAr) "تم إلغاء التحديد" else "Selection cleared", isError = false)
+                }
+            }
             QuickInputTool.SELECT_WORD -> selectCurrentWord()
             QuickInputTool.COPY -> {
                 val sel = ic?.getSelectedText(0)?.toString()

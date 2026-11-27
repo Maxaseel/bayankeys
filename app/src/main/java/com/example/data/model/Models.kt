@@ -772,6 +772,7 @@ enum class QuickInputTool(
 ) {
     // Edit & Clipboard
     SELECT_ALL("select_all", "تحديد الكل", "Select All", QuickToolCategory.EDIT_CLIPBOARD),
+    DESELECT_ALL("deselect_all", "إلغاء تحديد الكل", "Deselect All", QuickToolCategory.EDIT_CLIPBOARD),
     SELECT_WORD("select_word", "اختر كلمة", "Select Word", QuickToolCategory.EDIT_CLIPBOARD),
     COPY("copy", "نسخ", "Copy", QuickToolCategory.EDIT_CLIPBOARD),
     CUT("cut", "قصّ", "Cut", QuickToolCategory.EDIT_CLIPBOARD),
